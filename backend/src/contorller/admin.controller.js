@@ -1,4 +1,8 @@
 import Admin from "../models/admin.model.js";
+import Project from "../models/project.model.js";
+import Student from "../models/student.model.js";
+import Professor from "../models/professor.model.js";
+import Application from "../models/application.model.js";
 
 const generateAccessAndRefreshTokens = async (adminID) => {
     try {
@@ -138,8 +142,131 @@ const logoutAdmin = async (req, res) => {
     }
 };
 
+const getAllProjects = async (req, res) => {
+    try {
+        const { page = 1, limit = 10 } = req.query;
+
+        const skip = (page - 1) * limit;
+
+        const projects = await Project.find()
+            .populate("professor", "name department email")
+            .limit(Number(limit))
+            .skip(Number(skip))
+            .sort({ createdAt: -1 });
+
+        const totalProjects = await Project.countDocuments();
+
+        return res.status(200).json({
+            success: true,
+            projects,
+            pagination: {
+                totalProjects,
+                currentPage: Number(page),
+                totalPages: Math.ceil(totalProjects / limit),
+                limit: Number(limit)
+            }
+        });
+    } catch (error) {
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+};
+
+const getAllInternships = async (req, res) => {
+    try {
+        const { page = 1, limit = 10 } = req.query;
+        const skip = (page - 1) * limit;
+
+        const applications = await Application.find({ status: "ACCEPTED" })
+            .populate("student", "name email enrollmentno department year")
+            .populate({
+                path: "project",
+                populate: { path: "professor", select: "name department email" }
+            })
+            .limit(Number(limit))
+            .skip(Number(skip))
+            .sort({ createdAt: -1 });
+
+        const total = await Application.countDocuments({ status: "ACCEPTED" });
+
+        return res.status(200).json({
+            success: true,
+            internships: applications,
+            pagination: {
+                total,
+                currentPage: Number(page),
+                totalPages: Math.ceil(total / limit),
+                limit: Number(limit)
+            }
+        });
+    } catch (error) {
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+};
+
+const getAllProfessors = async (req, res) => {
+    try {
+        const { page = 1, limit = 10 } = req.query;
+        const skip = (page - 1) * limit;
+
+        const professors = await Professor.find()
+            .select("-password -refreshToken")
+            .populate("publishedProjects", "title status")
+            .limit(Number(limit))
+            .skip(Number(skip))
+            .sort({ createdAt: -1 });
+
+        const total = await Professor.countDocuments();
+
+        return res.status(200).json({
+            success: true,
+            professors,
+            pagination: {
+                total,
+                currentPage: Number(page),
+                totalPages: Math.ceil(total / limit),
+                limit: Number(limit)
+            }
+        });
+    } catch (error) {
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+};
+
+const getAllStudents = async (req, res) => {
+    try {
+        const { page = 1, limit = 10 } = req.query;
+        const skip = (page - 1) * limit;
+
+        const students = await Student.find()
+            .select("-password -refreshToken")
+            .populate("appliedProjects", "title status")
+            .limit(Number(limit))
+            .skip(Number(skip))
+            .sort({ createdAt: -1 });
+
+        const total = await Student.countDocuments();
+
+        return res.status(200).json({
+            success: true,
+            students,
+            pagination: {
+                total,
+                currentPage: Number(page),
+                totalPages: Math.ceil(total / limit),
+                limit: Number(limit)
+            }
+        });
+    } catch (error) {
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+};
+
 export {
     registerAdmin,
     loginAdmin,
-    logoutAdmin
+    logoutAdmin,
+    getAllProjects,
+    getAllInternships,
+    getAllProfessors,
+    getAllStudents
 };

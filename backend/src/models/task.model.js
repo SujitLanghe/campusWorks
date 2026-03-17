@@ -1,4 +1,4 @@
-const mongoose = require("mongoose")
+import mongoose from "mongoose"
 
 const taskSchema = new mongoose.Schema({
 
@@ -27,12 +27,34 @@ const taskSchema = new mongoose.Schema({
         required: true
     },
 
+    assignedTo: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Student"
+    }],
+
     status: {
         type: String,
-        enum: ["ACTIVE","COMPLETED","EXPIRED"],
+        enum: ["ACTIVE", "SUBMITTED", "EXPIRED"],
         default: "ACTIVE"
+    },
+
+    submittedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Student"
+    },
+
+    submissionVideoUrl: {
+        type: String
+    },
+
+    submissionImageUrls: [{
+        type: String
+    }],
+
+    submittedAt: {
+        type: Date
     }
 
-},{timestamps:true})
+}, { timestamps: true })
 
-module.exports = mongoose.model("Task",taskSchema)
+export default mongoose.model("Task", taskSchema)

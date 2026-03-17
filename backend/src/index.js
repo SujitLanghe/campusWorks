@@ -5,11 +5,14 @@ import connectDB from "./utils/connectdb.js";
 import studentRouter from "./routes/student.routes.js";
 import professorRouter from "./routes/professor.routes.js";
 import adminRouter from "./routes/admin.routes.js";
+import { startTaskExpiryCron } from "./utils/cronJobs.js";
 dotenv.config();
 
 const app = express();
 
-connectDB();
+connectDB().then(() => {
+    startTaskExpiryCron();
+});
 
 app.use(cors());
 app.use(express.json());

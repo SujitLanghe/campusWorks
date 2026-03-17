@@ -1,6 +1,10 @@
 import mongoose from "mongoose";
 import { uploadResult } from "../utils/Cloudinary.js";
 import Student from "../models/student.model.js";
+import Project from "../models/project.model.js";
+import Application from "../models/application.model.js";
+import Task from "../models/task.model.js";
+import { generateCertificate } from "../utils/generateCertificate.js";
 import jwt from "jsonwebtoken";
 
 const generateAccessAndRefreshTokens = async (studentID) => {
@@ -35,18 +39,6 @@ const registerStudent = async (req, res) => {
             return res.status(400).json({ message: "student already exists" });
         }
 
-        const resumeLocalPath = req.files?.resume?.[0]?.path;
-
-        if (!resumeLocalPath) {
-            return res.status(400).json({ message: "resume is missing" });
-        }
-
-        const resume = await uploadResult(resumeLocalPath);
-
-        if (!resume) {
-            return res.status(500).json({ message: "something went wrong while uploading resume" });
-        }
-
         const student = await Student.create({
             name: {
                 firstname: firstname.toLowerCase(),
@@ -58,7 +50,6 @@ const registerStudent = async (req, res) => {
             department,
             year,
             phone,
-            resumeUrl: resume.url
         });
 
         const createdStudent = await Student.findById(student._id).select("-password -refreshToken");
@@ -161,8 +152,241 @@ const logoutStudent = async (req, res) => {
     }
 };
 
+const updateProfile = async (req, res) => {
+    try {
+        const { skills, github, linkedin } = req.body;
+        const updateData = {};
+
+        if (skills) {
+            updateData.skills = Array.isArray(skills) ? skills : skills.split(",").map(skill => skill.trim());
+        }
+
+        if (github) updateData.github = github;
+        if (linkedin) updateData.linkedin = linkedin;
+
+        const resumeLocalPath = req.files?.resume?.[0]?.path;
+
+        if (resumeLocalPath) {
+            const resume = await uploadResult(resumeLocalPath);
+            if (!resume) {
+                return res.status(500).json({ message: "something went wrong while uploading resume" });
+            }
+            updateData.resumeUrl = resume.url;
+        }
+
+        const student = await Student.findByIdAndUpdate(
+            req.student._id,
+            {
+                $set: updateData
+            },
+            {
+                new: true
+            }
+        ).select("-password -refreshToken");
+
+        if (!student) {
+            return res.status(404).json({ message: "Student not found" });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: "Profile updated successfully",
+            student
+        });
+    } catch (error) {
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+};
+
+const applyToProject = async (req, res) => {
+    try {
+        const { projectId } = req.params;
+        const { message } = req.body;
+
+        if (!message) {
+            return res.status(400).json({ message: "Message is required to apply" });
+        }
+
+        const project = await Project.findById(projectId);
+
+        if (!project) {
+            return res.status(404).json({ message: "Project not found" });
+        }
+
+        if (project.status !== "OPEN") {
+            return res.status(400).json({ message: "Project is no longer open for applications" });
+        }
+
+        const existingApplication = await Application.findOne({
+            project: projectId,
+            student: req.student._id
+        });
+
+        if (existingApplication) {
+            return res.status(400).json({ message: "You have already applied for this project" });
+        }
+
+        const application = await Application.create({
+            project: projectId,
+            student: req.student._id,
+            message
+        });
+
+        await Student.findByIdAndUpdate(
+            req.student._id,
+            {
+                $push: {
+                    appliedProjects: projectId
+                }
+            }
+        );
+
+        return res.status(201).json({
+            success: true,
+            message: "Applied to project successfully",
+            application
+        });
+    } catch (error) {
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+};
+
+const getAppliedProjects = async (req, res) => {
+    try {
+        const applications = await Application.find({ student: req.student._id })
+            .populate({
+                path: "project",
+                populate: {
+                    path: "professor",
+                    select: "name email department designation"
+                }
+            })
+            .sort({ createdAt: -1 });
+
+        return res.status(200).json({
+            success: true,
+            applications
+        });
+    } catch (error) {
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+};
+
+const submitTask = async (req, res) => {
+    try {
+        const { taskId } = req.params;
+
+        const task = await Task.findById(taskId);
+
+        if (!task) {
+            return res.status(404).json({ message: "Task not found" });
+        }
+
+        if (!task.assignedTo.map(id => id.toString()).includes(req.student._id.toString())) {
+            return res.status(403).json({ message: "You are not assigned to this task" });
+        }
+
+        if (task.status === "EXPIRED") {
+            return res.status(400).json({ message: "Task deadline has passed. Submission is locked." });
+        }
+
+        if (task.status === "SUBMITTED") {
+            return res.status(400).json({ message: "Task already submitted" });
+        }
+
+        if (new Date() > new Date(task.deadline)) {
+            task.status = "EXPIRED";
+            await task.save();
+            return res.status(400).json({ message: "Task deadline has passed. Submission is locked." });
+        }
+
+        const videoLocalPath = req.files?.video?.[0]?.path;
+        const imageLocalPaths = req.files?.images?.map(f => f.path) || [];
+
+        if (!videoLocalPath && imageLocalPaths.length === 0) {
+            return res.status(400).json({ message: "Please upload at least a video or an image as proof" });
+        }
+
+        let submissionVideoUrl = null;
+        let submissionImageUrls = [];
+
+        if (videoLocalPath) {
+            const uploaded = await uploadResult(videoLocalPath);
+            if (!uploaded) return res.status(500).json({ message: "Failed to upload video" });
+            submissionVideoUrl = uploaded.url;
+        }
+
+        for (const imgPath of imageLocalPaths) {
+            const uploaded = await uploadResult(imgPath);
+            if (uploaded) submissionImageUrls.push(uploaded.url);
+        }
+
+        task.submittedBy = req.student._id;
+        task.submissionVideoUrl = submissionVideoUrl;
+        task.submissionImageUrls = submissionImageUrls;
+        task.submittedAt = new Date();
+        task.status = "SUBMITTED";
+        await task.save();
+
+        return res.status(200).json({
+            success: true,
+            message: "Task submitted successfully",
+            task
+        });
+    } catch (error) {
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+};
+
+const downloadCertificate = async (req, res) => {
+    try {
+        const { projectId } = req.params;
+
+        const project = await Project.findById(projectId)
+            .populate("professor", "name department");
+
+        if (!project) {
+            return res.status(404).json({ message: "Project not found" });
+        }
+
+        if (project.status !== "COMPLETED") {
+            return res.status(400).json({ message: "Certificate is only available after project completion" });
+        }
+
+        const application = await Application.findOne({
+            project: projectId,
+            student: req.student._id,
+            status: "ACCEPTED"
+        });
+
+        if (!application) {
+            return res.status(403).json({ message: "You were not an accepted participant in this project" });
+        }
+
+        const student = req.student;
+        const studentName = `${student.name.firstname} ${student.name.lastname}`;
+        const professorName = `${project.professor.name.firstname} ${project.professor.name.lastname}`;
+
+        generateCertificate(res, {
+            studentName,
+            projectTitle: project.title,
+            professorName,
+            department: project.professor.department,
+            completedAt: project.completedAt
+        });
+    } catch (error) {
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+};
+
 export {
     registerStudent,
     loginStudent,
-    logoutStudent
+    logoutStudent,
+    getProjects,
+    updateProfile,
+    applyToProject,
+    getAppliedProjects,
+    submitTask,
+    downloadCertificate
 };

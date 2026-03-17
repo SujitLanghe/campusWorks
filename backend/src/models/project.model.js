@@ -40,6 +40,15 @@ const projectSchema = new mongoose.Schema({
         type: String,
         enum: ["OPEN","ONGOING","COMPLETED"],
         default: "OPEN"
+    },
+
+    tasks: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Task"
+    }],
+
+    completedAt: {
+        type: Date
     }
 
 },{timestamps:true})

@@ -1,4 +1,4 @@
-const mongoose = require("mongoose")
+import mongoose from "mongoose"
 
 const applicationSchema = new mongoose.Schema({
 
@@ -15,7 +15,8 @@ const applicationSchema = new mongoose.Schema({
     },
 
     message: {
-        type: String
+        type: String,
+        required: true
     },
 
     status: {
