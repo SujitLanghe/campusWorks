@@ -1,5 +1,5 @@
 import express from "express";
-import { registerStudent, loginStudent, logoutStudent, getStudentProjects, updateProfile, applyToProject, getAppliedProjects, submitTask, downloadCertificate, getStudentProfile } from "../controllers/student.controller.js";
+import { registerStudent, loginStudent, logoutStudent, getStudentProjects, updateProfile, applyToProject, getAppliedProjects, submitTask, downloadCertificate, getStudentProfile, getAssignedTasks } from "../controllers/student.controller.js";
 import { upload } from "../middleware/multer.js";
 import { verifyStudentJWT } from "../middleware/student.auth.js";
 
@@ -22,6 +22,7 @@ studentRouter.route("/update-profile").patch(
 );
 studentRouter.route("/apply/:projectId").post(verifyStudentJWT, applyToProject);
 studentRouter.route("/applied-projects").get(verifyStudentJWT, getAppliedProjects);
+studentRouter.route("/tasks").get(verifyStudentJWT, getAssignedTasks);
 studentRouter.route("/submit-task/:taskId").post(
     verifyStudentJWT,
     upload.fields([

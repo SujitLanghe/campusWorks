@@ -411,14 +411,38 @@ const reviewTaskSubmission = async (req, res) => {
         }
 
         if (action === "ACCEPT") {
-            // Keep status as SUBMITTED (or we could change it to COMPLETED if there was a status for it)
-            // But from schemas, 'SUBMITTED' is fine. When all tasks are done, project is marked complete.
+            task.status = "ACCEPTED";
+            await task.save();
+
             return res.status(200).json({
                 success: true,
                 message: "Task submission accepted",
                 task
             });
         }
+    } catch (error) {
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+};
+
+const getProjectDetails = async (req, res) => {
+    try {
+        const { projectId } = req.params;
+        const project = await Project.findOne({ _id: projectId, professor: req.professor._id })
+            .populate("students", "name email department enrollmentno");
+        
+        if (!project) return res.status(404).json({ message: "Project not found" });
+
+        const tasks = await Task.find({ project: projectId })
+            .populate("assignedTo", "name email enrollmentno")
+            .populate("submittedBy", "name email enrollmentno")
+            .sort({ createdAt: -1 });
+
+        return res.status(200).json({
+            success: true,
+            project,
+            tasks
+        });
     } catch (error) {
         return res.status(500).json({ message: error.message || "Internal server error" });
     }
@@ -435,5 +459,6 @@ export {
     markProjectComplete,
     getProfessorProfile,
     getMyProjects,
-    reviewTaskSubmission
+    reviewTaskSubmission,
+    getProjectDetails
 };

@@ -34,7 +34,7 @@ const taskSchema = new mongoose.Schema({
 
     status: {
         type: String,
-        enum: ["ACTIVE", "SUBMITTED", "EXPIRED", "REWORK_REQUIRED"],
+        enum: ["ACTIVE", "SUBMITTED", "EXPIRED", "REWORK_REQUIRED", "ACCEPTED"],
         default: "ACTIVE"
     },
 

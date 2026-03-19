@@ -405,3 +405,18 @@ export const getStudentProjects = async (req, res) => {
         return res.status(500).json({ message: error.message || "Internal server error" });
     }
 };
+
+export const getAssignedTasks = async (req, res) => {
+    try {
+        const tasks = await Task.find({ assignedTo: req.student._id })
+            .populate("project", "title")
+            .sort({ deadline: 1 });
+
+        return res.status(200).json({
+            success: true,
+            tasks
+        });
+    } catch (error) {
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+};
