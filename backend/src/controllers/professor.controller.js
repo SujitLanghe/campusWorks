@@ -89,16 +89,19 @@ const loginProfessor = async (req, res) => {
 
         const loggedProfessor = await Professor.findById(professor._id).select("-password -refreshToken");
 
+        const isProd = process.env.NODE_ENV === "production";
         const options = {
             httpOnly: true,
-            secure: true,
-            sameSite: 'None'
+            secure: isProd,
+            sameSite: isProd ? "None" : "Lax",
+            path: "/",
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
         };
 
         return res
             .status(200)
-            .cookie("accessToken", accessToken, options)
-            .cookie("refreshToken", refreshToken, options)
+            .cookie("professorAccessToken", accessToken, options)
+            .cookie("professorRefreshToken", refreshToken, options)
             .json({
                 success: true,
                 message: "professor logged in successfully",
@@ -125,16 +128,18 @@ const logoutProfessor = async (req, res) => {
             }
         );
 
+        const isProd = process.env.NODE_ENV === "production";
         const options = {
             httpOnly: true,
-            secure: true,
-            sameSite: 'none',
+            secure: isProd,
+            sameSite: isProd ? "None" : "Lax",
+            path: "/"
         };
 
         return res
             .status(200)
-            .clearCookie("accessToken", options)
-            .clearCookie("refreshToken", options)
+            .clearCookie("professorAccessToken", options)
+            .clearCookie("professorRefreshToken", options)
             .json({
                 success: true,
                 message: "professor logged out"
@@ -332,6 +337,93 @@ const markProjectComplete = async (req, res) => {
     }
 };
 
+const getProfessorProfile = async (req, res) => {
+    return res.status(200).json({
+        success: true,
+        professor: req.professor
+    });
+};
+
+const getMyProjects = async (req, res) => {
+    try {
+        const projects = await Project.find({ professor: req.professor._id })
+            .populate("students", "name email enrollmentno department year")
+            .populate({
+                path: "tasks",
+                select: "taskNumber title deadline status submittedAt submittedBy",
+                populate: { path: "submittedBy", select: "name email enrollmentno" }
+            })
+            .sort({ createdAt: -1 });
+
+        return res.status(200).json({
+            success: true,
+            projects
+        });
+    } catch (error) {
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+};
+
+const reviewTaskSubmission = async (req, res) => {
+    try {
+        const { taskId } = req.params;
+        const { action, newDeadline } = req.body;
+
+        if (!action || !["ACCEPT", "REJECT"].includes(action)) {
+            return res.status(400).json({ message: "Action must be either ACCEPT or REJECT" });
+        }
+
+        const task = await Task.findById(taskId).populate("project");
+
+        if (!task) {
+            return res.status(404).json({ message: "Task not found" });
+        }
+
+        const project = task.project;
+
+        if (project.professor.toString() !== req.professor._id.toString()) {
+            return res.status(403).json({ message: "You are not authorized to review tasks for this project" });
+        }
+
+        if (task.status !== "SUBMITTED") {
+            return res.status(400).json({ message: "Task is not in SUBMITTED state" });
+        }
+
+        if (action === "REJECT") {
+            task.status = "REWORK_REQUIRED";
+            
+            // clear submission details to allow rework
+            task.submittedBy = undefined;
+            task.submissionVideoUrl = undefined;
+            task.submissionImageUrls = [];
+            task.submittedAt = undefined;
+
+            if (newDeadline) {
+                task.deadline = new Date(newDeadline);
+            }
+            await task.save();
+
+            return res.status(200).json({
+                success: true,
+                message: "Task submission rejected and rework requested",
+                task
+            });
+        }
+
+        if (action === "ACCEPT") {
+            // Keep status as SUBMITTED (or we could change it to COMPLETED if there was a status for it)
+            // But from schemas, 'SUBMITTED' is fine. When all tasks are done, project is marked complete.
+            return res.status(200).json({
+                success: true,
+                message: "Task submission accepted",
+                task
+            });
+        }
+    } catch (error) {
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+};
+
 export {
     registerProfessor,
     loginProfessor,
@@ -340,5 +432,8 @@ export {
     getApplicationsForProject,
     acceptApplication,
     assignTask,
-    markProjectComplete
+    markProjectComplete,
+    getProfessorProfile,
+    getMyProjects,
+    reviewTaskSubmission
 };

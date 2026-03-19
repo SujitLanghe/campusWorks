@@ -1,7 +1,7 @@
 import express from "express";
-import { registerStudent, loginStudent, logoutStudent, getProjects, updateProfile, applyToProject, getAppliedProjects, submitTask, downloadCertificate } from "../contorller/student.controller.js";
-import { upload } from "../middelware/multer.js";
-import { verifyStudentJWT } from "../middelware/student.auth.js";
+import { registerStudent, loginStudent, logoutStudent, getStudentProjects, updateProfile, applyToProject, getAppliedProjects, submitTask, downloadCertificate, getStudentProfile } from "../controllers/student.controller.js";
+import { upload } from "../middleware/multer.js";
+import { verifyStudentJWT } from "../middleware/student.auth.js";
 
 const studentRouter = express.Router();
 
@@ -10,8 +10,9 @@ studentRouter.route("/register").post(registerStudent);
 studentRouter.route("/login").post(loginStudent);
 
 // secured routes
+studentRouter.route("/me").get(verifyStudentJWT, getStudentProfile);
 studentRouter.route("/logout").post(verifyStudentJWT, logoutStudent);
-studentRouter.route("/projects").get(verifyStudentJWT, getProjects);
+studentRouter.route("/projects").get(verifyStudentJWT, getStudentProjects);
 studentRouter.route("/update-profile").patch(
     verifyStudentJWT,
     upload.fields([

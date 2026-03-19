@@ -3,7 +3,7 @@ import Professor from "../models/professor.model.js";
 
 export const verifyProfessorJWT = async (req, res, next) => {
     try {
-        const token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "");
+        const token = req.cookies?.professorAccessToken || req.header("Authorization")?.replace("Bearer ", "");
 
         if (!token) {
             return res.status(401).json({ message: "Unauthorized request" });

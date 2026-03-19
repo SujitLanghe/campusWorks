@@ -23,7 +23,7 @@ const generateAccessAndRefreshTokens = async (studentID) => {
     }
 };
 
-const registerStudent = async (req, res) => {
+export const registerStudent = async (req, res) => {
     try {
         const { firstname, lastname, email, enrollmentno, password, department, year, phone } = req.body;
 
@@ -68,7 +68,7 @@ const registerStudent = async (req, res) => {
     }
 };
 
-const loginStudent = async (req, res) => {
+export const loginStudent = async (req, res) => {
     try {
         const { email, password } = req.body;
 
@@ -97,16 +97,19 @@ const loginStudent = async (req, res) => {
 
         const loggedStudent = await Student.findById(student._id).select("-password -refreshToken");
 
+        const isProd = process.env.NODE_ENV === "production";
         const options = {
             httpOnly: true,
-            secure: true,
-            sameSite: 'None'
+            secure: isProd, 
+            sameSite: isProd ? "None" : "Lax",
+            path: "/",
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
         };
 
         return res
             .status(200)
-            .cookie("accessToken", accessToken, options)
-            .cookie("refreshToken", refreshToken, options)
+            .cookie("studentAccessToken", accessToken, options)
+            .cookie("studentRefreshToken", refreshToken, options)
             .json({
                 success: true,
                 message: "student logged in successfully",
@@ -119,7 +122,7 @@ const loginStudent = async (req, res) => {
     }
 };
 
-const logoutStudent = async (req, res) => {
+export const logoutStudent = async (req, res) => {
     try {
         await Student.findByIdAndUpdate(
             req.student._id,
@@ -133,16 +136,18 @@ const logoutStudent = async (req, res) => {
             }
         );
 
+        const isProd = process.env.NODE_ENV === "production";
         const options = {
             httpOnly: true,
-            secure: true,
-            sameSite: 'none',
+            secure: isProd,
+            sameSite: isProd ? "None" : "Lax",
+            path: "/"
         };
 
         return res
             .status(200)
-            .clearCookie("accessToken", options)
-            .clearCookie("refreshToken", options)
+            .clearCookie("studentAccessToken", options)
+            .clearCookie("studentRefreshToken", options)
             .json({
                 success: true,
                 message: "student logged out"
@@ -152,7 +157,7 @@ const logoutStudent = async (req, res) => {
     }
 };
 
-const updateProfile = async (req, res) => {
+export const updateProfile = async (req, res) => {
     try {
         const { skills, github, linkedin } = req.body;
         const updateData = {};
@@ -198,7 +203,7 @@ const updateProfile = async (req, res) => {
     }
 };
 
-const applyToProject = async (req, res) => {
+export const applyToProject = async (req, res) => {
     try {
         const { projectId } = req.params;
         const { message } = req.body;
@@ -251,7 +256,7 @@ const applyToProject = async (req, res) => {
     }
 };
 
-const getAppliedProjects = async (req, res) => {
+export const getAppliedProjects = async (req, res) => {
     try {
         const applications = await Application.find({ student: req.student._id })
             .populate({
@@ -272,7 +277,7 @@ const getAppliedProjects = async (req, res) => {
     }
 };
 
-const submitTask = async (req, res) => {
+export const submitTask = async (req, res) => {
     try {
         const { taskId } = req.params;
 
@@ -338,7 +343,7 @@ const submitTask = async (req, res) => {
     }
 };
 
-const downloadCertificate = async (req, res) => {
+export const downloadCertificate = async (req, res) => {
     try {
         const { projectId } = req.params;
 
@@ -379,14 +384,24 @@ const downloadCertificate = async (req, res) => {
     }
 };
 
-export {
-    registerStudent,
-    loginStudent,
-    logoutStudent,
-    getProjects,
-    updateProfile,
-    applyToProject,
-    getAppliedProjects,
-    submitTask,
-    downloadCertificate
+export const getStudentProfile = async (req, res) => {
+    return res.status(200).json({
+        success: true,
+        student: req.student
+    });
+};
+
+export const getStudentProjects = async (req, res) => {
+    try {
+        const projects = await Project.find({ status: "OPEN" })
+            .populate("professor", "name email department designation")
+            .sort({ createdAt: -1 });
+
+        return res.status(200).json({
+            success: true,
+            data: projects
+        });
+    } catch (error) {
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
 };

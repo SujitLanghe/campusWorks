@@ -1,9 +1,9 @@
 import jwt from "jsonwebtoken";
-import Student from "../models/student.model.js";
+import Admin from "../models/admin.model.js";
 
-export const verifyStudentJWT = async (req, res, next) => {
+export const verifyAdminJWT = async (req, res, next) => {
     try {
-        const token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "");
+        const token = req.cookies?.adminAccessToken || req.header("Authorization")?.replace("Bearer ", "");
 
         if (!token) {
             return res.status(401).json({ message: "Unauthorized request" });
@@ -11,13 +11,13 @@ export const verifyStudentJWT = async (req, res, next) => {
 
         const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
 
-        const student = await Student.findById(decodedToken?._id).select("-password -refreshToken");
+        const admin = await Admin.findById(decodedToken?._id).select("-password -refreshToken");
 
-        if (!student) {
+        if (!admin) {
             return res.status(401).json({ message: "Invalid Access Token" });
         }
 
-        req.student = student;
+        req.admin = admin;
         next();
     } catch (error) {
         return res.status(401).json({ message: error?.message || "Invalid access token" });

@@ -87,16 +87,19 @@ const loginAdmin = async (req, res) => {
 
         const loggedAdmin = await Admin.findById(admin._id).select("-password -refreshToken");
 
+        const isProd = process.env.NODE_ENV === "production";
         const options = {
             httpOnly: true,
-            secure: true,
-            sameSite: 'None'
+            secure: isProd,
+            sameSite: isProd ? "None" : "Lax",
+            path: "/",
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
         };
 
         return res
             .status(200)
-            .cookie("accessToken", accessToken, options)
-            .cookie("refreshToken", refreshToken, options)
+            .cookie("adminAccessToken", accessToken, options)
+            .cookie("adminRefreshToken", refreshToken, options)
             .json({
                 success: true,
                 message: "admin logged in successfully",
@@ -123,16 +126,18 @@ const logoutAdmin = async (req, res) => {
             }
         );
 
+        const isProd = process.env.NODE_ENV === "production";
         const options = {
             httpOnly: true,
-            secure: true,
-            sameSite: 'none',
+            secure: isProd,
+            sameSite: isProd ? "None" : "Lax",
+            path: "/"
         };
 
         return res
             .status(200)
-            .clearCookie("accessToken", options)
-            .clearCookie("refreshToken", options)
+            .clearCookie("adminAccessToken", options)
+            .clearCookie("adminRefreshToken", options)
             .json({
                 success: true,
                 message: "admin logged out"
@@ -261,6 +266,13 @@ const getAllStudents = async (req, res) => {
     }
 };
 
+const getAdminProfile = async (req, res) => {
+    return res.status(200).json({
+        success: true,
+        admin: req.admin
+    });
+};
+
 export {
     registerAdmin,
     loginAdmin,
@@ -268,5 +280,6 @@ export {
     getAllProjects,
     getAllInternships,
     getAllProfessors,
-    getAllStudents
+    getAllStudents,
+    getAdminProfile
 };
