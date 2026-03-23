@@ -5,6 +5,8 @@ interface User {
   name: { firstname: string; lastname: string };
   email: string;
   department: string;
+  designation?: string;
+  researchArea?: string[];
 }
 
 interface AuthState {

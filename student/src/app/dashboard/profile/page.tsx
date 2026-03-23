@@ -5,7 +5,7 @@ import { RootState } from "@/store/store";
 import { loginSuccess } from "@/store/authSlice";
 import api from "@/lib/axios";
 import { toast } from "react-hot-toast";
-import { User, Mail, GraduationCap, Briefcase, Phone, BookOpen, Linkedin, Github, FileText, Loader2 } from "lucide-react";
+import { User, Mail, GraduationCap, Briefcase, Phone, BookOpen, Linkedin, Github, FileText, Loader2, Fingerprint } from "lucide-react";
 
 export default function Profile() {
   const { user } = useSelector((state: RootState) => state.auth);
@@ -54,138 +54,158 @@ export default function Profile() {
   if (!user) return null;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="h-32 bg-gradient-to-r from-blue-600 to-blue-400"></div>
-        <div className="px-8 pb-8">
-          <div className="relative flex justify-between items-end -mt-12 mb-6">
-            <div className="w-24 h-24 bg-white rounded-full p-1 shadow-md">
-              <div className="w-full h-full bg-blue-100 rounded-full flex items-center justify-center text-blue-600 text-3xl font-bold">
-                {user.name?.firstname?.[0]}{user.name?.lastname?.[0]}
-              </div>
-            </div>
-            <div className="mb-2">
-              <span className="px-4 py-1.5 bg-blue-50 text-blue-700 font-semibold text-sm rounded-full">
-                Student Profile
-              </span>
-            </div>
+    <div className="max-w-4xl mx-auto space-y-6 pb-12">
+      
+      {/* Clean Page Header */}
+      <div className="bg-white p-6 md:p-8 rounded-xl border border-gray-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <Fingerprint className="w-5 h-5 text-blue-600" />
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">Student Identity</h1>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-4">
-              <h3 className="text-xl font-bold text-gray-900 border-b pb-2">Personal Details</h3>
-              <div className="flex items-center text-gray-700">
-                <User className="w-5 h-5 mr-3 text-gray-400" />
-                <span className="font-medium">{user.name?.firstname} {user.name?.lastname}</span>
-              </div>
-              <div className="flex items-center text-gray-700">
-                <Mail className="w-5 h-5 mr-3 text-gray-400" />
-                <span>{user.email}</span>
-              </div>
-              <div className="flex items-center text-gray-700">
-                <Phone className="w-5 h-5 mr-3 text-gray-400" />
-                <span>{user.phone || "Not provided"}</span>
-              </div>
-            </div>
-            
-            <div className="space-y-4">
-              <h3 className="text-xl font-bold text-gray-900 border-b pb-2">Academic Details</h3>
-              <div className="flex items-center text-gray-700">
-                <GraduationCap className="w-5 h-5 mr-3 text-gray-400" />
-                <span><span className="text-gray-500 text-sm">Enrollment No:</span> {user.enrollmentno}</span>
-              </div>
-              <div className="flex items-center text-gray-700">
-                <Briefcase className="w-5 h-5 mr-3 text-gray-400" />
-                <span>{user.department} Department</span>
-              </div>
-              <div className="flex items-center text-gray-700">
-                <BookOpen className="w-5 h-5 mr-3 text-gray-400" />
-                <span>Year {user.year}</span>
-              </div>
-            </div>
-          </div>
+          <p className="text-gray-500 text-sm md:text-base max-w-2xl">
+            Maintain your verified university portfolio. Ensure your links, resume, and listed skills are up-to-date for professors to review.
+          </p>
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-        <h3 className="text-xl font-bold text-gray-900 mb-6">Professional Links & Assets</h3>
-        <form onSubmit={handleUpdate} className="space-y-5">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Skills (Comma separated)</label>
-            <input
-              type="text"
-              name="skills"
-              value={formData.skills}
-              onChange={handleChange}
-              placeholder="e.g. React, Node.js, Python"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none"
-            />
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden p-8 flex flex-col md:flex-row gap-8 items-start">
+        {/* Avatar Badge Container */}
+        <div className="flex-shrink-0 flex flex-col items-center p-6 bg-slate-50 border border-gray-200 rounded-2xl min-w-[240px] w-full md:w-auto">
+          <div className="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 text-4xl font-extrabold mb-4 border-4 border-white shadow-sm tracking-tight">
+            {user.name?.firstname?.[0]?.toUpperCase()}{user.name?.lastname?.[0]?.toUpperCase()}
           </div>
+          <h2 className="text-xl font-bold text-gray-900 text-center">{user.name?.firstname} {user.name?.lastname}</h2>
+          <span className="mt-3 px-3 py-1 bg-white border border-gray-200 text-gray-600 font-bold text-xs uppercase tracking-wider rounded-md shadow-sm">
+            Student Identity
+          </span>
+          <div className="w-full h-px bg-gray-200 my-4"></div>
+          <div className="flex flex-col w-full space-y-2">
+            <div className="flex items-center justify-between text-xs font-bold text-gray-500">
+              <span className="uppercase">Enrollment</span>
+              <span className="text-gray-900">{user.enrollmentno}</span>
+            </div>
+            <div className="flex items-center justify-between text-xs font-bold text-gray-500">
+              <span className="uppercase">Year</span>
+              <span className="text-gray-900">Year {user.year}</span>
+            </div>
+            <div className="flex items-center justify-between text-xs font-bold text-gray-500">
+              <span className="uppercase">Dept</span>
+              <span className="text-gray-900 truncate max-w-[120px] text-right" title={user.department}>{user.department}</span>
+            </div>
+          </div>
+        </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div className="relative">
-              <label className="block text-sm font-medium text-gray-700 mb-1">LinkedIn URL</label>
-              <div className="relative">
-                <Linkedin className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                <input
-                  type="url"
-                  name="linkedin"
-                  value={formData.linkedin}
-                  onChange={handleChange}
-                  placeholder="https://linkedin.com/in/..."
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none"
-                />
+        {/* Academic Details Content */}
+        <div className="flex-1 w-full space-y-8">
+          <div>
+            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 pb-2 mb-4">Contact & Communication</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="bg-slate-50 p-4 rounded-xl border border-gray-100">
+                <div className="flex items-center text-gray-500 mb-1.5">
+                  <Mail className="w-4 h-4 mr-2" />
+                  <span className="text-xs font-bold uppercase tracking-wider">Email Address</span>
+                </div>
+                <div className="font-bold text-gray-900 break-words">{user.email}</div>
+              </div>
+              <div className="bg-slate-50 p-4 rounded-xl border border-gray-100">
+                <div className="flex items-center text-gray-500 mb-1.5">
+                  <Phone className="w-4 h-4 mr-2" />
+                  <span className="text-xs font-bold uppercase tracking-wider">Mobile Contact</span>
+                </div>
+                <div className="font-bold text-gray-900 break-words">{user.phone || "Missing Contact"}</div>
               </div>
             </div>
-            
-            <div className="relative">
-              <label className="block text-sm font-medium text-gray-700 mb-1">GitHub URL</label>
-              <div className="relative">
-                <Github className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                <input
-                  type="url"
-                  name="github"
-                  value={formData.github}
-                  onChange={handleChange}
-                  placeholder="https://github.com/..."
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none"
-                />
-              </div>
-            </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Upload Resume (PDF)</label>
-            <div className="flex items-center space-x-4">
-              <label className="flex items-center px-4 py-2 bg-gray-50 text-gray-700 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors">
-                <FileText className="w-5 h-5 mr-2" />
-                <span>{resumeFile ? resumeFile.name : "Select Resume"}</span>
-                <input 
-                  type="file" 
-                  accept=".pdf"
-                  className="hidden" 
-                  onChange={(e) => setResumeFile(e.target.files?.[0] || null)}
-                />
-              </label>
-              {user.resumeUrl && !resumeFile && (
-                <a href={user.resumeUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-blue-600 hover:underline">
-                  View Current Resume
-                </a>
-              )}
-            </div>
+            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 pb-2 mb-4">Integrations & Portfolio</h3>
+            <form onSubmit={handleUpdate} className="space-y-5">
+              
+              <div className="space-y-4 bg-slate-50 p-5 rounded-xl border border-gray-100">
+                {/* URLs Row */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-gray-500 uppercase flex items-center">
+                      <Linkedin className="w-3.5 h-3.5 mr-1.5" /> LinkedIn Profile
+                    </label>
+                    <input
+                      type="url"
+                      name="linkedin"
+                      value={formData.linkedin}
+                      onChange={handleChange}
+                      placeholder="https://linkedin.com/..."
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-gray-500 uppercase flex items-center">
+                      <Github className="w-3.5 h-3.5 mr-1.5" /> GitHub Profile
+                    </label>
+                    <input
+                      type="url"
+                      name="github"
+                      value={formData.github}
+                      onChange={handleChange}
+                      placeholder="https://github.com/..."
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-gray-500 uppercase flex items-center">
+                    <BookOpen className="w-3.5 h-3.5 mr-1.5" /> Skill Tags (Comma Separated)
+                  </label>
+                  <input
+                    type="text"
+                    name="skills"
+                    value={formData.skills}
+                    onChange={handleChange}
+                    placeholder="e.g. React, Docker, UI/UX"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-gray-500 uppercase flex items-center">
+                    <FileText className="w-3.5 h-3.5 mr-1.5" /> PDF Resume Override
+                  </label>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                    <label className="flex items-center px-4 py-2 bg-white text-gray-700 border border-gray-200 hover:border-blue-300 rounded-lg cursor-pointer transition-colors shadow-sm font-bold text-sm h-10">
+                      <FileText className="w-4 h-4 mr-2 text-blue-500" />
+                      <span className="truncate max-w-[150px]">{resumeFile ? resumeFile.name : "Select Document"}</span>
+                      <input 
+                        type="file" 
+                        accept=".pdf"
+                        className="hidden" 
+                        onChange={(e) => setResumeFile(e.target.files?.[0] || null)}
+                      />
+                    </label>
+                    {user.resumeUrl && !resumeFile && (
+                      <a href={user.resumeUrl} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-blue-600 hover:text-blue-800 bg-blue-50 px-3 h-10 flex items-center rounded-lg border border-blue-100 transition-colors">
+                        Inspect Current Resume
+                      </a>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full md:w-auto px-8 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all shadow-md shadow-blue-600/30 disabled:opacity-50 flex justify-center items-center active:-translate-y-px"
+                >
+                  {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  {loading ? "Synchronizing..." : "Update Portfolio Matrix"}
+                </button>
+              </div>
+
+            </form>
           </div>
 
-          <div className="pt-4 border-t">
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-6 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center"
-            >
-              {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              {loading ? "Updating..." : "Save Changes"}
-            </button>
-          </div>
-        </form>
+        </div>
       </div>
     </div>
   );

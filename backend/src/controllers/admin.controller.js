@@ -273,6 +273,64 @@ const getAdminProfile = async (req, res) => {
     });
 };
 
+const getAdminDashboardStats = async (req, res) => {
+    try {
+        const [
+            totalStudents,
+            totalProfessors,
+            totalProjects,
+            activeInternships,
+            completedProjects
+        ] = await Promise.all([
+            Student.countDocuments(),
+            Professor.countDocuments(),
+            Project.countDocuments(),
+            Application.countDocuments({ status: "ACCEPTED" }),
+            Project.countDocuments({ status: "COMPLETED" })
+        ]);
+
+        return res.status(200).json({
+            success: true,
+            stats: {
+                totalStudents,
+                totalProfessors,
+                totalProjects,
+                activeInternships,
+                completedProjects
+            }
+        });
+    } catch (error) {
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+};
+
+const getRecentActivities = async (req, res) => {
+    try {
+        // Get last 10 applications
+        const applications = await Application.find()
+            .populate("student", "name email")
+            .populate("project", "title")
+            .sort({ createdAt: -1 })
+            .limit(10);
+
+        const activities = applications.map(app => ({
+            _id: app._id,
+            type: "APPLICATION",
+            student: app.student?.name,
+            project: app.project?.title,
+            status: app.status,
+            timestamp: app.createdAt
+        }));
+
+        return res.status(200).json({
+            success: true,
+            activities
+        });
+    } catch (error) {
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+};
+
 export {
     registerAdmin,
     loginAdmin,
@@ -281,5 +339,7 @@ export {
     getAllInternships,
     getAllProfessors,
     getAllStudents,
-    getAdminProfile
+    getAdminProfile,
+    getAdminDashboardStats,
+    getRecentActivities
 };

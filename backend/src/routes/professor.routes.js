@@ -1,5 +1,5 @@
 import express from "express";
-import { registerProfessor, loginProfessor, logoutProfessor, publishProject, getApplicationsForProject, acceptApplication, assignTask, markProjectComplete, getProfessorProfile, getMyProjects, reviewTaskSubmission, getProjectDetails } from "../controllers/professor.controller.js";
+import { registerProfessor, loginProfessor, logoutProfessor, publishProject, getApplicationsForProject, acceptApplication, assignTask, markProjectComplete, getProfessorProfile, getMyProjects, reviewTaskSubmission, getProjectDetails, getAllProjects } from "../controllers/professor.controller.js";
 import { verifyProfessorJWT } from "../middleware/professor.auth.js";
 
 const professorRouter = express.Router();
@@ -10,6 +10,7 @@ professorRouter.route("/login").post(loginProfessor);
 // secured routes
 professorRouter.route("/me").get(verifyProfessorJWT, getProfessorProfile);
 professorRouter.route("/my-projects").get(verifyProfessorJWT, getMyProjects);
+professorRouter.route("/all-projects").get(verifyProfessorJWT, getAllProjects);
 professorRouter.route("/logout").post(verifyProfessorJWT, logoutProfessor);
 professorRouter.route("/publish-project").post(verifyProfessorJWT, publishProject);
 professorRouter.route("/applications/:projectId").get(verifyProfessorJWT, getApplicationsForProject);

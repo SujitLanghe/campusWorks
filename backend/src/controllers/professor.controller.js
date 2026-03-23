@@ -448,6 +448,23 @@ const getProjectDetails = async (req, res) => {
     }
 };
 
+const getAllProjects = async (req, res) => {
+    try {
+        const projects = await Project.find()
+            .populate("professor", "name email department designation")
+            .populate("students", "name email enrollmentno")
+            .populate("tasks", "taskNumber title status")
+            .sort({ createdAt: -1 });
+
+        return res.status(200).json({
+            success: true,
+            projects
+        });
+    } catch (error) {
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+};
+
 export {
     registerProfessor,
     loginProfessor,
@@ -460,5 +477,6 @@ export {
     getProfessorProfile,
     getMyProjects,
     reviewTaskSubmission,
-    getProjectDetails
+    getProjectDetails,
+    getAllProjects
 };

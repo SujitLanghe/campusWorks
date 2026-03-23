@@ -15,4 +15,19 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Handle 401 responses globally to log out the professor if the token expires
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('professorToken');
+        localStorage.removeItem('professor');
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default api;

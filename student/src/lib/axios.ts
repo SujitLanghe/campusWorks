@@ -16,4 +16,19 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Handle 401 responses globally to log out the user if the token expires
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('studentToken');
+        localStorage.removeItem('student');
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default api;

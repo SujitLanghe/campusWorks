@@ -19,12 +19,14 @@ import { toast } from "react-hot-toast";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const dispatch = useDispatch();
   const { user, isAuthenticated } = useSelector((state: RootState) => state.auth);
 
   useEffect(() => {
+    setMounted(true);
     if (!isAuthenticated) {
       router.push("/login");
     }
@@ -33,11 +35,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const handleLogout = async () => {
     try {
       await api.post("/logout");
+    } catch (error) {
+      console.error("Logout API failed", error);
+    } finally {
       dispatch(logout());
       toast.success("Logged out successfully");
       router.push("/login");
-    } catch (error) {
-      toast.error("Failed to logout");
     }
   };
 
@@ -47,7 +50,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { name: "Profile", href: "/dashboard/profile", icon: UserCircle },
   ];
 
-  if (!isAuthenticated) return null;
+  if (!mounted || !isAuthenticated) return null;
 
   return (
     <div className="min-h-screen bg-slate-50 flex">
