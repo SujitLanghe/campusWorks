@@ -2,21 +2,18 @@
 import React, { useState, useEffect } from "react";
 import api from "@/lib/axios";
 import { toast } from "react-hot-toast";
+import Link from "next/link";
 import { 
-  GraduationCap, 
-  Mail, 
+  Users, 
   Search, 
   Loader2, 
-  ChevronLeft, 
-  ChevronRight,
+  Building2, 
+  Mail, 
   User,
-  Activity,
-  Award,
   Fingerprint,
-  Building2,
   Calendar,
-  Layers,
-  Sparkles
+  ExternalLink,
+  Target
 } from "lucide-react";
 
 interface Student {
@@ -26,7 +23,15 @@ interface Student {
   department: string;
   enrollmentno: string;
   year: number;
-  appliedProjects: { title: string; status: string }[];
+  appliedProjects: { 
+    _id: string; 
+    title: string; 
+    status: string;
+    professor: {
+      name: { firstname: string; lastname: string };
+      department: string;
+    };
+  }[];
 }
 
 export default function StudentsManagement() {
@@ -37,12 +42,14 @@ export default function StudentsManagement() {
 
   const fetchStudents = async (page = 1) => {
     try {
-      setLoading(true);
-      const { data } = await api.get(`/students?page=${page}&limit=8`);
+      const { data } = await api.get(`/students?page=${page}`);
       setStudents(data.students);
-      setPagination(data.pagination);
+      setPagination({
+        currentPage: data.pagination.currentPage,
+        totalPages: data.pagination.totalPages
+      });
     } catch (error) {
-      toast.error("Failed to load student directory");
+      toast.error("Failed to load student registry");
     } finally {
       setLoading(false);
     }
@@ -59,12 +66,14 @@ export default function StudentsManagement() {
   );
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-gray-100">
+    <div className="space-y-8 animate-in fade-in duration-500 pb-20">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-1">
-          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight text-blue-600">Student Directory</h1>
-          <p className="text-gray-500 font-medium">Global tracking of student participation and research progress.</p>
+          <h1 className="text-3xl font-black text-gray-900 tracking-tight">Student Matrix</h1>
+          <p className="text-gray-500 font-medium italic text-sm">Managing undergraduate research participation and performance.</p>
         </div>
+
         <div className="relative w-full md:w-80">
           <Search className="absolute left-3.5 top-3.5 h-4 w-4 text-gray-400" />
           <input
@@ -89,70 +98,100 @@ export default function StudentsManagement() {
           <p className="text-gray-500">No student records match your current oversight filters.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-          {filteredStudents.map((student: Student) => (
-            <div key={student._id} className="bg-white rounded-[32px] border border-gray-100 shadow-sm hover:shadow-2xl hover:-translate-y-1.5 transition-all duration-500 flex flex-col group p-6 border-b-4 border-b-blue-500/20 active:border-b-blue-500">
-              
-              <div className="flex items-center gap-4 mb-8">
-                <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center font-black text-xl border-2 border-blue-100 group-hover:bg-blue-600 group-hover:text-white transition-all duration-500 shadow-sm group-hover:rotate-6">
-                  {student.name.firstname[0].toUpperCase()}{student.name.lastname[0].toUpperCase()}
-                </div>
-                <div>
-                  <h3 className="text-lg font-black text-gray-900 leading-tight">{student.name.firstname} {student.name.lastname}</h3>
-                  <div className="flex items-center text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">
-                    <Fingerprint className="w-3 h-3 mr-1" /> {student.enrollmentno}
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-3 mb-8">
-                <div className="flex items-center gap-3 text-xs font-bold text-gray-500 bg-gray-50 p-2.5 rounded-xl border border-gray-100 group-hover:bg-white transition-colors">
-                  <Building2 className="w-4 h-4 text-blue-400" />
-                  <span className="truncate">{student.department} Department</span>
-                </div>
-                <div className="flex items-center gap-3 text-xs font-bold text-gray-500 bg-gray-50 p-2.5 rounded-xl border border-gray-100 group-hover:bg-white transition-colors">
-                  <Mail className="w-4 h-4 text-blue-400" />
-                  <span className="truncate font-medium">{student.email}</span>
-                </div>
-                <div className="flex items-center gap-3 text-xs font-bold text-gray-500 bg-gray-50 p-2.5 rounded-xl border border-gray-100 group-hover:bg-white transition-colors">
-                  <Calendar className="w-4 h-4 text-blue-400" />
-                  <span>Year {student.year} Undergraduate</span>
-                </div>
-              </div>
-
-              <div className="mt-auto border-t border-gray-50 pt-6 flex items-center justify-between">
-                <div className="flex flex-col">
-                  <span className="text-[9px] font-black text-gray-400 uppercase tracking-tighter">Participation</span>
-                  <p className="text-sm font-black text-gray-900">{student.appliedProjects?.length || 0} Project Apps</p>
-                </div>
-                <Award className="w-5 h-5 text-yellow-500" />
-              </div>
-            </div>
-          ))}
+        <div className="bg-white rounded-[32px] border border-gray-200 shadow-sm overflow-hidden">
+          <div className="overflow-x-auto text-xs">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-blue-50/50 border-b border-gray-100 text-gray-400 font-black uppercase tracking-widest text-[10px]">
+                  <th className="px-8 py-5">Student Identity</th>
+                  <th className="px-8 py-5">Academic Detail</th>
+                  <th className="px-8 py-5">Contact</th>
+                  <th className="px-8 py-5 text-center">Engagement</th>
+                  <th className="px-8 py-5 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50 font-bold">
+                {filteredStudents.map((student: Student) => (
+                  <tr key={student._id} className="hover:bg-blue-50/30 transition-colors group">
+                    <td className="px-8 py-6">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 bg-blue-100 text-blue-700 rounded-xl flex items-center justify-center font-black shadow-sm group-hover:rotate-6 transition-transform">
+                          {student.name.firstname[0]}{student.name.lastname[0]}
+                        </div>
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-sm font-black text-gray-900 line-clamp-1 group-hover:text-blue-600 transition-colors">
+                            {student.name.firstname} {student.name.lastname}
+                          </span>
+                          <span className="text-[10px] text-gray-400 uppercase tracking-widest font-black flex items-center gap-1">
+                            <Fingerprint className="w-2.5 h-2.5" /> {student.enrollmentno}
+                          </span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-8 py-6">
+                      <div className="flex flex-col gap-1">
+                         <div className="flex items-center gap-2 text-gray-500 uppercase tracking-tighter">
+                            <Building2 className="w-3.5 h-3.5 text-blue-400" /> {student.department}
+                         </div>
+                         <div className="flex items-center gap-2 text-[10px] text-gray-400">
+                            <Calendar className="w-3.5 h-3.5" /> Year {student.year}
+                         </div>
+                      </div>
+                    </td>
+                    <td className="px-8 py-6">
+                      <div className="flex items-center gap-2 text-gray-500 lowercase font-medium">
+                        <Mail className="w-3.5 h-3.5 text-gray-300" />
+                        <span className="truncate max-w-[180px]">{student.email}</span>
+                      </div>
+                    </td>
+                    <td className="px-8 py-6">
+                      <div className="flex justify-center">
+                        <span className="px-3 py-1 bg-white border border-blue-100 text-blue-600 rounded-lg text-[10px] font-black uppercase tracking-tighter shadow-sm flex items-center gap-1.5">
+                          <Target className="w-3 h-3" /> {student.appliedProjects?.length || 0} Apps
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-8 py-6">
+                      <div className="flex justify-end">
+                        <Link 
+                          href={`/dashboard/students/${student._id}`}
+                          className="p-2.5 bg-white border border-gray-100 text-gray-400 hover:text-blue-600 hover:border-blue-200 rounded-xl transition-all shadow-sm group/btn"
+                          title="View History"
+                        >
+                          <ExternalLink className="w-4 h-4 group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5 transition-transform" />
+                        </Link>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
-      {/* Pagination View */}
+      {/* Pagination Controls */}
       {!loading && pagination.totalPages > 1 && (
-        <div className="flex items-center justify-center gap-3 pt-12">
-          <button 
-            disabled={pagination.currentPage === 1}
+        <div className="flex items-center justify-center gap-4 mt-8">
+          <button
             onClick={() => fetchStudents(pagination.currentPage - 1)}
-            className="w-12 h-12 flex items-center justify-center bg-white border border-gray-200 rounded-2xl text-gray-400 hover:text-blue-600 disabled:opacity-30 transition-all hover:shadow-lg shadow-sm"
+            disabled={pagination.currentPage === 1}
+            className="px-6 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50 transition-all shadow-sm"
           >
-            <ChevronLeft className="w-5 h-5" />
+            Previous
           </button>
-          <div className="bg-white border border-gray-200 px-6 py-3 rounded-2xl shadow-sm flex items-center gap-2">
-            <span className="text-sm font-black text-gray-900">{pagination.currentPage}</span>
-            <span className="text-gray-300 font-bold">/</span>
-            <span className="text-sm font-black text-gray-400">{pagination.totalPages}</span>
+          <div className="flex items-center gap-2">
+            <span className="w-8 h-8 bg-blue-600 text-white rounded-lg flex items-center justify-center text-xs font-black shadow-lg shadow-blue-200">
+              {pagination.currentPage}
+            </span>
+            <span className="text-gray-400 font-bold text-xs">of {pagination.totalPages}</span>
           </div>
-          <button 
-            disabled={pagination.currentPage === pagination.totalPages}
+          <button
             onClick={() => fetchStudents(pagination.currentPage + 1)}
-            className="w-12 h-12 flex items-center justify-center bg-white border border-gray-200 rounded-2xl text-gray-400 hover:text-blue-600 disabled:opacity-30 transition-all hover:shadow-lg shadow-sm"
+            disabled={pagination.currentPage === pagination.totalPages}
+            className="px-6 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50 transition-all shadow-sm"
           >
-            <ChevronRight className="w-5 h-5" />
+            Next
           </button>
         </div>
       )}

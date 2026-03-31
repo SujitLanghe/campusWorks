@@ -2,17 +2,16 @@
 import React, { useState, useEffect } from "react";
 import api from "@/lib/axios";
 import { toast } from "react-hot-toast";
+import Link from "next/link";
 import { 
   Briefcase, 
-  Mail, 
-  Building2, 
   Search, 
   Loader2, 
-  ChevronLeft, 
-  ChevronRight,
+  Building2, 
+  Mail, 
   User,
-  ArrowRight,
-  ExternalLink
+  ExternalLink,
+  Target
 } from "lucide-react";
 
 interface Professor {
@@ -21,7 +20,7 @@ interface Professor {
   email: string;
   department: string;
   designation: string;
-  publishedProjects: { _id: string; title: string; status: string }[];
+  publishedProjects: any[];
 }
 
 export default function ProfessorsManagement() {
@@ -32,12 +31,14 @@ export default function ProfessorsManagement() {
 
   const fetchProfessors = async (page = 1) => {
     try {
-      setLoading(true);
-      const { data } = await api.get(`/professors?page=${page}&limit=8`);
+      const { data } = await api.get(`/professors?page=${page}`);
       setProfessors(data.professors);
-      setPagination(data.pagination);
+      setPagination({
+        currentPage: data.pagination.currentPage,
+        totalPages: data.pagination.totalPages
+      });
     } catch (error) {
-      toast.error("Failed to load faculty data");
+      toast.error("Failed to load faculty records");
     } finally {
       setLoading(false);
     }
@@ -54,12 +55,14 @@ export default function ProfessorsManagement() {
   );
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-gray-100">
+    <div className="space-y-8 animate-in fade-in duration-500 pb-20">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-1">
-          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight text-emerald-600">Faculty Management</h1>
-          <p className="text-gray-500 font-medium">Oversight of all registered professors and their research contributions.</p>
+          <h1 className="text-3xl font-black text-gray-900 tracking-tight">Faculty Directory</h1>
+          <p className="text-gray-500 font-medium italic text-sm">Overseeing university research leads and academic contributions.</p>
         </div>
+
         <div className="relative w-full md:w-80">
           <Search className="absolute left-3.5 top-3.5 h-4 w-4 text-gray-400" />
           <input
@@ -84,65 +87,96 @@ export default function ProfessorsManagement() {
           <p className="text-gray-500">No faculty members match your search criteria.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {filteredProfessors.map((prof) => (
-            <div key={prof._id} className="bg-white rounded-3xl border border-gray-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col group">
-              <div className="p-8 pb-6 flex-1">
-                <div className="flex justify-between items-start mb-6">
-                  <div className="w-14 h-14 bg-emerald-100 text-emerald-700 rounded-2xl flex items-center justify-center font-black text-xl border-4 border-emerald-50 shadow-sm">
-                    {prof.name.firstname[0].toUpperCase()}{prof.name.lastname[0].toUpperCase()}
-                  </div>
-                  <span className="px-3 py-1 bg-white border border-gray-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-gray-500 group-hover:bg-emerald-600 group-hover:text-white transition-colors duration-300">
-                    {prof.designation || 'FACULTY'}
-                  </span>
-                </div>
-                
-                <h3 className="text-xl font-black text-gray-900 mb-1">Prof. {prof.name.firstname} {prof.name.lastname}</h3>
-                <div className="flex items-center text-xs font-bold text-emerald-600 gap-1.5 mb-6 bg-emerald-50/50 w-fit px-2 py-1 rounded-lg border border-emerald-100">
-                   <Building2 className="w-3.5 h-3.5" /> {prof.department} Department
-                </div>
-
-                <div className="space-y-3 pt-6 border-t border-gray-50">
-                  <div className="flex items-center gap-3 text-sm font-medium text-gray-500">
-                    <Mail className="w-4 h-4 text-gray-300" />
-                    <span className="truncate">{prof.email}</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-sm font-medium text-gray-500">
-                    <Briefcase className="w-4 h-4 text-gray-300" />
-                    <span className="font-bold text-gray-900">{prof.publishedProjects?.length || 0} Projects Published</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-4 bg-slate-50 border-t border-gray-50 mt-auto flex gap-2">
-                 <button className="flex-1 bg-white hover:bg-emerald-600 hover:text-white text-gray-700 border border-gray-200 py-3 rounded-2xl text-xs font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2 group/btn shadow-sm">
-                    Inspect Profile <ExternalLink className="w-3.5 h-3.5 text-gray-300 group-hover/btn:text-white" />
-                 </button>
-              </div>
-            </div>
-          ))}
+        <div className="bg-white rounded-[32px] border border-gray-200 shadow-sm overflow-hidden">
+          <div className="overflow-x-auto text-xs">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50/50 border-b border-gray-100 text-gray-400 font-black uppercase tracking-widest text-[10px]">
+                  <th className="px-8 py-5">Faculty Member</th>
+                  <th className="px-8 py-5">Contact Details</th>
+                  <th className="px-8 py-5">Department</th>
+                  <th className="px-8 py-5 text-center">Portfolio</th>
+                  <th className="px-8 py-5 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50 font-bold">
+                {filteredProfessors.map((prof) => (
+                  <tr key={prof._id} className="hover:bg-slate-50/50 transition-colors group">
+                    <td className="px-8 py-6">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 bg-emerald-100 text-emerald-700 rounded-xl flex items-center justify-center font-black shadow-sm group-hover:scale-110 transition-transform">
+                          {prof.name.firstname[0]}{prof.name.lastname[0]}
+                        </div>
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-sm font-black text-gray-900 line-clamp-1 group-hover:text-emerald-600 transition-colors">
+                            Prof. {prof.name.firstname} {prof.name.lastname}
+                          </span>
+                          <span className="text-[10px] text-gray-400 uppercase tracking-widest font-black">
+                            {prof.designation || 'FACULTY'}
+                          </span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-8 py-6">
+                      <div className="flex items-center gap-2 text-gray-500">
+                        <Mail className="w-3.5 h-3.5 text-gray-300" />
+                        <span className="font-medium lowercase truncate max-w-[200px]">{prof.email}</span>
+                      </div>
+                    </td>
+                    <td className="px-8 py-6 uppercase tracking-wider text-gray-500 font-black">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="w-3.5 h-3.5 text-emerald-400" />
+                        {prof.department}
+                      </div>
+                    </td>
+                    <td className="px-8 py-6">
+                      <div className="flex justify-center">
+                        <span className="px-3 py-1 bg-white border border-emerald-100 text-emerald-600 rounded-lg text-[10px] font-black uppercase tracking-tighter shadow-sm">
+                          {prof.publishedProjects?.length || 0} Projects
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-8 py-6">
+                      <div className="flex justify-end">
+                        <Link 
+                          href={`/dashboard/professors/${prof._id}`}
+                          className="p-2.5 bg-white border border-gray-100 text-gray-400 hover:text-emerald-600 hover:border-emerald-200 rounded-xl transition-all shadow-sm group/btn"
+                          title="Inspect Profile"
+                        >
+                          <ExternalLink className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
+                        </Link>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
-      {/* Pagination Container */}
+      {/* Pagination Controls */}
       {!loading && pagination.totalPages > 1 && (
-        <div className="flex items-center justify-center gap-3 pt-8">
-          <button 
-            disabled={pagination.currentPage === 1}
+        <div className="flex items-center justify-center gap-4 mt-8">
+          <button
             onClick={() => fetchProfessors(pagination.currentPage - 1)}
-            className="p-3 bg-white border border-gray-200 rounded-2xl text-gray-400 hover:text-emerald-600 disabled:opacity-30 transition-all shadow-sm"
+            disabled={pagination.currentPage === 1}
+            className="px-6 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50 transition-all shadow-sm"
           >
-            <ChevronLeft className="w-5 h-5" />
+            Previous
           </button>
-          <span className="text-sm font-black text-gray-900 bg-white border border-gray-200 px-5 py-3 rounded-2xl shadow-sm">
-            {pagination.currentPage} <span className="text-gray-300 font-bold mx-2">/</span> {pagination.totalPages}
-          </span>
-          <button 
-            disabled={pagination.currentPage === pagination.totalPages}
+          <div className="flex items-center gap-2">
+            <span className="w-8 h-8 bg-emerald-600 text-white rounded-lg flex items-center justify-center text-xs font-black shadow-lg shadow-emerald-200">
+              {pagination.currentPage}
+            </span>
+            <span className="text-gray-400 font-bold text-xs">of {pagination.totalPages}</span>
+          </div>
+          <button
             onClick={() => fetchProfessors(pagination.currentPage + 1)}
-            className="p-3 bg-white border border-gray-200 rounded-2xl text-gray-400 hover:text-emerald-600 disabled:opacity-30 transition-all shadow-sm"
+            disabled={pagination.currentPage === pagination.totalPages}
+            className="px-6 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50 transition-all shadow-sm"
           >
-            <ChevronRight className="w-5 h-5" />
+            Next
           </button>
         </div>
       )}

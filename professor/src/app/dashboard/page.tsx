@@ -5,12 +5,13 @@ import api from "@/lib/axios";
 import { toast } from "react-hot-toast";
 import { 
   Briefcase, Users, Clock, CheckCircle, Plus, LayoutGrid, 
-  Loader2, Calendar, Edit, Eye, Archive, CheckCircle2
+  Loader2, Calendar, Edit, Eye, Archive, CheckCircle2, Trash2, AlertTriangle
 } from "lucide-react";
 
 export default function MyProjects() {
   const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
 
   const toggleExpand = (id: string) => {
@@ -42,6 +43,21 @@ export default function MyProjects() {
       fetchProjects();
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Failed to complete project");
+    }
+  };
+
+  const handleDelete = async (projectId: string) => {
+    if (!window.confirm("CRITICAL ACTION: Are you sure you want to PERMANENTLY DELETE this project? This will remove all associated tasks, student applications, and progress. This action cannot be undone.")) return;
+    
+    setDeletingId(projectId);
+    try {
+      const { data } = await api.delete(`/delete-project/${projectId}`);
+      toast.success(data.message || "Project deleted successfully");
+      fetchProjects();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Failed to delete project");
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -109,11 +125,23 @@ export default function MyProjects() {
               {/* Card Header */}
               <div className="p-6 border-b border-gray-100 flex flex-col gap-4">
                 <div className="flex justify-between items-start">
-                  {getStatusBadge(project.status)}
-                  <span className="text-xs text-gray-400 flex items-center font-medium">
-                    <Calendar className="w-3 h-3 mr-1" />
-                    {new Date(project.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
-                  </span>
+                  <div className="flex flex-col gap-2">
+                    {getStatusBadge(project.status)}
+                    <span className="text-[10px] text-gray-400 flex items-center font-bold uppercase tracking-wider">
+                      <Calendar className="w-3 h-3 mr-1" />
+                      {new Date(project.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                    </span>
+                  </div>
+                  {project.status === "OPEN" && (
+                    <button 
+                      onClick={() => handleDelete(project._id)}
+                      disabled={deletingId === project._id}
+                      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all disabled:opacity-50"
+                      title="Delete Project"
+                    >
+                      {deletingId === project._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                    </button>
+                  )}
                 </div>
                 <h3 className="text-lg font-bold text-gray-900 line-clamp-2 leading-tight">
                   {project.title}
@@ -124,7 +152,7 @@ export default function MyProjects() {
               <div className="px-6 py-4 border-b border-gray-50 bg-slate-50/30">
                 <div className="relative">
                   <div 
-                    className={`text-gray-600 text-sm leading-relaxed transition-all duration-300 overflow-hidden ${expandedProjects.has(project._id) ? 'max-h-[1000px]' : 'max-h-16 line-clamp-2'}`}
+                    className={`text-gray-600 text-sm leading-relaxed transition-all duration-300 overflow-hidden prose prose-sm max-w-none ${expandedProjects.has(project._id) ? 'max-h-[1000px]' : 'max-h-16 line-clamp-2'}`}
                     dangerouslySetInnerHTML={{ __html: project.description }}
                   />
                   {project.description && project.description.length > 100 && (

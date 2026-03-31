@@ -257,6 +257,39 @@ const acceptApplication = async (req, res) => {
     }
 };
 
+const rejectApplication = async (req, res) => {
+    try {
+        const { applicationId } = req.params;
+
+        const application = await Application.findById(applicationId).populate("project");
+
+        if (!application) {
+            return res.status(404).json({ message: "Application not found" });
+        }
+
+        const project = application.project;
+
+        if (project.professor.toString() !== req.professor._id.toString()) {
+            return res.status(403).json({ message: "You are not authorized to reject applications for this project" });
+        }
+
+        if (application.status === "ACCEPTED") {
+            return res.status(400).json({ message: "Cannot reject an application that has already been accepted" });
+        }
+
+        application.status = "REJECTED";
+        await application.save();
+
+        return res.status(200).json({
+            success: true,
+            message: "Application declined successfully",
+            application
+        });
+    } catch (error) {
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+};
+
 const assignTask = async (req, res) => {
     try {
         const { projectId } = req.params;
@@ -465,6 +498,52 @@ const getAllProjects = async (req, res) => {
     }
 };
 
+const deleteProject = async (req, res) => {
+    try {
+        const { projectId } = req.params;
+
+        const project = await Project.findById(projectId);
+
+        if (!project) {
+            return res.status(404).json({ message: "Project not found" });
+        }
+
+        if (project.professor.toString() !== req.professor._id.toString()) {
+            return res.status(403).json({ message: "You are not authorized to delete this project" });
+        }
+
+        if (project.status !== "OPEN") {
+            return res.status(400).json({ message: "Only projects with 'OPEN' status can be deleted. Ongoing or Completed projects cannot be removed." });
+        }
+
+        // 1. Delete associated tasks
+        await Task.deleteMany({ project: projectId });
+
+        // 2. Delete associated applications
+        await Application.deleteMany({ project: projectId });
+
+        // 3. Remove project reference from Professor model
+        await Professor.findByIdAndUpdate(
+            req.professor._id,
+            {
+                $pull: {
+                    publishedProjects: projectId
+                }
+            }
+        );
+
+        // 4. Delete the project itself
+        await Project.findByIdAndDelete(projectId);
+
+        return res.status(200).json({
+            success: true,
+            message: "Project and all associated data deleted successfully"
+        });
+    } catch (error) {
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+};
+
 export {
     registerProfessor,
     loginProfessor,
@@ -472,11 +551,13 @@ export {
     publishProject,
     getApplicationsForProject,
     acceptApplication,
+    rejectApplication,
     assignTask,
     markProjectComplete,
     getProfessorProfile,
     getMyProjects,
     reviewTaskSubmission,
     getProjectDetails,
-    getAllProjects
+    getAllProjects,
+    deleteProject
 };

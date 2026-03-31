@@ -21,8 +21,8 @@ export default function ProfessorLogin() {
     lastname: "",
     email: "",
     password: "",
-    department: "",
-    designation: "",
+    department: "IT",
+    designation: "Assistant Professor",
     researchArea: "",
   });
 
@@ -32,7 +32,7 @@ export default function ProfessorLogin() {
     }
   }, [isAuthenticated, router]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
@@ -100,30 +100,36 @@ export default function ProfessorLogin() {
 
                 <div className="relative">
                   <Briefcase className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                  <input
-                    type="text"
+                  <select
                     name="department"
-                    placeholder="Department"
+                    value={formData.department}
                     onChange={handleChange}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:border-transparent outline-none transition-all"
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:border-transparent outline-none transition-all appearance-none bg-white"
                     required
-                  />
+                  >
+                    {["IT", "CS", "ENTC", "MECH", "AI"].map(dept => (
+                      <option key={dept} value={dept}>{dept}</option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <input
-                    type="text"
+                  <select
                     name="designation"
-                    placeholder="Designation"
+                    value={formData.designation}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:border-transparent outline-none transition-all"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:border-transparent outline-none transition-all appearance-none bg-white"
                     required
-                  />
+                  >
+                    {["Assistant Professor", "Associate Professor", "Professor", "HOD", "Dean"].map(role => (
+                      <option key={role} value={role}>{role}</option>
+                    ))}
+                  </select>
                   <input
                     type="text"
                     name="researchArea"
                     placeholder="Research Area (CSV)"
-                    onChange={handleChange}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange(e)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:border-transparent outline-none transition-all"
                     required
                   />

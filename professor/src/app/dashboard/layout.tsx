@@ -46,7 +46,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const navItems = [
     { name: "Explore Projects", href: "/dashboard/explore", icon: Globe },
-    { name: "My Projects", href: "/dashboard", icon: Briefcase },
+    { name: "My Projects", href: "/dashboard/project", icon: Briefcase },
     { name: "Publish Project", href: "/dashboard/publish", icon: PlusCircle },
     { name: "Profile", href: "/dashboard/profile", icon: UserCircle },
   ];

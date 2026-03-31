@@ -17,7 +17,9 @@ import {
   Building2,
   Globe,
   PieChart,
-  Target
+  Target,
+  Info,
+  X
 } from "lucide-react";
 
 interface Project {
@@ -32,6 +34,12 @@ interface Project {
     name: { firstname: string; lastname: string };
     department: string;
   };
+  students: {
+    _id: string;
+    name: { firstname: string; lastname: string };
+    email: string;
+    department: string;
+  }[];
   createdAt: string;
 }
 
@@ -40,6 +48,7 @@ export default function ProjectsOversight() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [pagination, setPagination] = useState({ currentPage: 1, totalPages: 1 });
 
   const fetchProjects = async (page = 1) => {
@@ -162,13 +171,22 @@ export default function ProjectsOversight() {
                       </div>
                     </td>
                     <td className="px-8 py-6">
-                      <div className="flex flex-col items-end gap-1.5">
-                        <div className="flex items-center gap-2 text-[10px] font-black text-gray-900 border border-gray-100 px-2 py-1 rounded-lg bg-white">
-                          <Users className="w-3 h-3 text-blue-500" /> Max {project.maxStudents} Spot
+                      <div className="flex items-center justify-end gap-3">
+                        <div className="flex flex-col items-end gap-1.5">
+                          <div className="flex items-center gap-2 text-[10px] font-black text-gray-900 border border-gray-100 px-2 py-1 rounded-lg bg-white">
+                            <Users className="w-3 h-3 text-blue-500" /> {project.students?.length} / {project.maxStudents} Spot
+                          </div>
+                           <div className="flex items-center gap-2 text-[10px] font-black text-gray-900 border border-gray-100 px-2 py-1 rounded-lg bg-white">
+                            <Clock className="w-3 h-3 text-orange-500" /> {project.duration}
+                          </div>
                         </div>
-                         <div className="flex items-center gap-2 text-[10px] font-black text-gray-900 border border-gray-100 px-2 py-1 rounded-lg bg-white">
-                          <Clock className="w-3 h-3 text-orange-500" /> {project.duration}
-                        </div>
+                        <button 
+                          onClick={() => setSelectedProject(project)}
+                          className="p-2.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white rounded-xl transition-all shadow-sm border border-emerald-100"
+                          title="View Details"
+                        >
+                          <Info className="w-4 h-4" />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -200,6 +218,103 @@ export default function ProjectsOversight() {
             >
               <ChevronRight className="w-5 h-5" />
             </button>
+          </div>
+        </div>
+      )}
+      {/* Project Detail Modal */}
+      {selectedProject && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300"
+            onClick={() => setSelectedProject(null)}
+          ></div>
+          
+          <div className="bg-white rounded-[32px] w-full max-w-2xl shadow-2xl relative z-10 flex flex-col max-h-[85vh] animate-in zoom-in duration-300 overflow-hidden border border-gray-100">
+            {/* Modal Header */}
+            <div className="p-8 border-b border-gray-50 flex items-center justify-between bg-emerald-50/30">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-white rounded-2xl shadow-sm border border-emerald-100">
+                  <Target className="w-6 h-6 text-emerald-600" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-gray-900 leading-tight">{selectedProject.title}</h3>
+                  <div className="flex items-center gap-3 mt-1">
+                    <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest border ${getStatusStyle(selectedProject.status)} shadow-sm`}>
+                      {selectedProject.status}
+                    </span>
+                    <span className="text-[10px] font-bold text-gray-400 flex items-center uppercase tracking-tighter">
+                      <Calendar className="w-3 h-3 mr-1" /> Published {new Date(selectedProject.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <button 
+                onClick={() => setSelectedProject(null)}
+                className="p-3 text-gray-400 hover:text-gray-900 hover:bg-white rounded-2xl transition-all shadow-sm border border-transparent hover:border-gray-100"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-8 overflow-y-auto custom-scrollbar flex-1 space-y-8">
+              {/* Description Section */}
+              <div>
+                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                  Problem Statement
+                </h4>
+                <div 
+                  className="prose prose-sm max-w-none text-gray-700 leading-relaxed bg-slate-50/50 p-6 rounded-2xl border border-gray-50"
+                  dangerouslySetInnerHTML={{ __html: selectedProject.description }}
+                />
+              </div>
+
+              {/* Team Section */}
+              <div>
+                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                  Research Team <span className="ml-2 px-2 py-0.5 bg-gray-100 text-gray-500 rounded-md">{selectedProject.students?.length || 0}</span>
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                   <div className="p-4 bg-white border border-gray-100 rounded-2xl shadow-sm flex items-center gap-3">
+                      <div className="w-10 h-10 bg-emerald-100 text-emerald-700 rounded-xl flex items-center justify-center font-bold text-sm">
+                        {selectedProject.professor?.name?.firstname?.[0]}
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[9px] font-black text-gray-400 uppercase">Supervisor</span>
+                        <span className="text-xs font-bold text-gray-900">Prof. {selectedProject.professor?.name?.firstname} {selectedProject.professor?.name?.lastname}</span>
+                      </div>
+                   </div>
+                   
+                   {selectedProject.students?.map((student) => (
+                      <div key={student._id} className="p-4 bg-white border border-gray-100 rounded-2xl shadow-sm flex items-center gap-3">
+                        <div className="w-10 h-10 bg-blue-100 text-blue-700 rounded-xl flex items-center justify-center font-bold text-sm">
+                          {student.name.firstname[0]}
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-[9px] font-black text-gray-400 uppercase">Researcher</span>
+                          <span className="text-xs font-bold text-gray-900">{student.name.firstname} {student.name.lastname}</span>
+                        </div>
+                      </div>
+                   ))}
+                   
+                   {(!selectedProject.students || selectedProject.students.length === 0) && (
+                     <div className="p-4 bg-gray-50 border border-dashed border-gray-200 rounded-2xl text-center col-span-full">
+                        <p className="text-[10px] font-bold text-gray-400 uppercase">No active student researchers assigned</p>
+                     </div>
+                   )}
+                </div>
+              </div>
+            </div>
+
+            {/* Sticky Actions */}
+            <div className="p-6 border-t border-gray-50 bg-slate-50/50 flex justify-end shrink-0">
+               <button 
+                 onClick={() => setSelectedProject(null)}
+                 className="px-8 py-3 bg-gray-900 hover:bg-black text-white font-black rounded-2xl text-xs uppercase tracking-widest transition-all shadow-xl shadow-gray-200 active:translate-y-px"
+               >
+                 Close Manifest
+               </button>
+            </div>
           </div>
         </div>
       )}

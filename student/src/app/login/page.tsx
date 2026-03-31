@@ -22,8 +22,8 @@ export default function StudentLogin() {
     email: "",
     enrollmentno: "",
     password: "",
-    department: "",
-    year: "",
+    department: "IT",
+    year: "FY",
     phone: "",
   });
 
@@ -33,7 +33,7 @@ export default function StudentLogin() {
     }
   }, [isAuthenticated, router]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
@@ -112,22 +112,28 @@ export default function StudentLogin() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <input
-                    type="text"
+                  <select
                     name="department"
-                    placeholder="Department (e.g. CS)"
+                    value={formData.department}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none transition-all"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none transition-all appearance-none bg-white"
                     required
-                  />
-                  <input
-                    type="number"
+                  >
+                    {["IT", "CS", "ENTC", "MECH", "AI"].map(dept => (
+                      <option key={dept} value={dept}>{dept}</option>
+                    ))}
+                  </select>
+                  <select
                     name="year"
-                    placeholder="Year (e.g. 3)"
+                    value={formData.year}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none transition-all"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none transition-all appearance-none bg-white"
                     required
-                  />
+                  >
+                    {["FY", "SY", "TY", "BE"].map(year => (
+                      <option key={year} value={year}>{year}</option>
+                    ))}
+                  </select>
                 </div>
                 
                 <input

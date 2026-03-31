@@ -155,6 +155,7 @@ const getAllProjects = async (req, res) => {
 
         const projects = await Project.find()
             .populate("professor", "name department email")
+            .populate("students", "name email enrollmentno department")
             .limit(Number(limit))
             .skip(Number(skip))
             .sort({ createdAt: -1 });
@@ -215,7 +216,14 @@ const getAllProfessors = async (req, res) => {
 
         const professors = await Professor.find()
             .select("-password -refreshToken")
-            .populate("publishedProjects", "title status")
+            .populate({
+                path: "publishedProjects",
+                select: "title status description students",
+                populate: {
+                    path: "students",
+                    select: "name email enrollmentno department"
+                }
+            })
             .limit(Number(limit))
             .skip(Number(skip))
             .sort({ createdAt: -1 });
@@ -244,7 +252,14 @@ const getAllStudents = async (req, res) => {
 
         const students = await Student.find()
             .select("-password -refreshToken")
-            .populate("appliedProjects", "title status")
+            .populate({
+                path: "appliedProjects",
+                select: "title status professor",
+                populate: {
+                    path: "professor",
+                    select: "name department"
+                }
+            })
             .limit(Number(limit))
             .skip(Number(skip))
             .sort({ createdAt: -1 });
@@ -280,13 +295,16 @@ const getAdminDashboardStats = async (req, res) => {
             totalProfessors,
             totalProjects,
             activeInternships,
-            completedProjects
+            completedProjects,
+            professorsInInternship
         ] = await Promise.all([
             Student.countDocuments(),
             Professor.countDocuments(),
             Project.countDocuments(),
             Application.countDocuments({ status: "ACCEPTED" }),
-            Project.countDocuments({ status: "COMPLETED" })
+            Project.countDocuments({ status: "COMPLETED" }),
+            Project.distinct("professor", { students: { $exists: true, $not: { $size: 0 } } })
+                .then(ids => ids.length)
         ]);
 
         return res.status(200).json({
@@ -296,7 +314,8 @@ const getAdminDashboardStats = async (req, res) => {
                 totalProfessors,
                 totalProjects,
                 activeInternships,
-                completedProjects
+                completedProjects,
+                professorsInInternship
             }
         });
     } catch (error) {
@@ -331,6 +350,135 @@ const getRecentActivities = async (req, res) => {
     }
 };
 
+const getProfessorDetails = async (req, res) => {
+    try {
+        const { professorId } = req.params;
+
+        const professor = await Professor.findById(professorId)
+            .select("-password -refreshToken")
+            .populate({
+                path: "publishedProjects",
+                populate: {
+                    path: "students",
+                    select: "name email enrollmentno department year"
+                }
+            });
+
+        if (!professor) {
+            return res.status(404).json({ message: "Professor not found" });
+        }
+
+        return res.status(200).json({
+            success: true,
+            professor
+        });
+    } catch (error) {
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+};
+
+const getStudentDetails = async (req, res) => {
+    try {
+        const { studentId } = req.params;
+
+        const student = await Student.findById(studentId)
+            .select("-password -refreshToken")
+            .populate({
+                path: "appliedProjects",
+                populate: {
+                    path: "professor",
+                    select: "name department email"
+                }
+            });
+
+        if (!student) {
+            return res.status(404).json({ message: "Student not found" });
+        }
+
+        return res.status(200).json({
+            success: true,
+            student
+        });
+    } catch (error) {
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+};
+
+const createStudentByAdmin = async (req, res) => {
+    try {
+        const { firstname, lastname, email, enrollmentno, password, department, year, phone } = req.body;
+
+        if ([firstname, lastname, email, enrollmentno, password, department, year, phone].some(field => !field || !field.trim())) {
+            return res.status(400).json({ message: "All fields are required for student registration" });
+        }
+
+        const existedStudent = await Student.findOne({ $or: [{ enrollmentno }, { email }] });
+        if (existedStudent) {
+            return res.status(400).json({ message: "Student with this enrollment or email already exists" });
+        }
+
+        const student = await Student.create({
+            name: {
+                firstname: firstname.toLowerCase(),
+                lastname: lastname.toLowerCase()
+            },
+            password,
+            email,
+            enrollmentno,
+            department,
+            year,
+            phone
+        });
+
+        const createdStudent = await Student.findById(student._id).select("-password -refreshToken");
+
+        return res.status(201).json({
+            success: true,
+            message: "Student created successfully by Admin",
+            student: createdStudent
+        });
+    } catch (error) {
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+};
+
+const createProfessorByAdmin = async (req, res) => {
+    try {
+        const { firstname, lastname, email, password, department, designation, researchArea } = req.body;
+
+        if (!firstname || !lastname || !email || !password || !department || !designation) {
+            return res.status(400).json({ message: "All required fields are missing for professor registration" });
+        }
+
+        const existedProfessor = await Professor.findOne({ email });
+        if (existedProfessor) {
+            return res.status(400).json({ message: "Professor with this email already exists" });
+        }
+
+        const professor = await Professor.create({
+            name: {
+                firstname: firstname.toLowerCase(),
+                lastname: lastname.toLowerCase()
+            },
+            email,
+            password,
+            department,
+            designation,
+            researchArea: Array.isArray(researchArea) ? researchArea : researchArea?.split(",").map(area => area.trim())
+        });
+
+        const createdProfessor = await Professor.findById(professor._id).select("-password -refreshToken");
+
+        return res.status(201).json({
+            success: true,
+            message: "Professor created successfully by Admin",
+            professor: createdProfessor
+        });
+    } catch (error) {
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+};
+
 export {
     registerAdmin,
     loginAdmin,
@@ -341,5 +489,9 @@ export {
     getAllStudents,
     getAdminProfile,
     getAdminDashboardStats,
-    getRecentActivities
+    getRecentActivities,
+    getProfessorDetails,
+    getStudentDetails,
+    createStudentByAdmin,
+    createProfessorByAdmin
 };

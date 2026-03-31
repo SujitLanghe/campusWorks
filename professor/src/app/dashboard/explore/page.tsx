@@ -4,7 +4,7 @@ import api from "@/lib/axios";
 import { toast } from "react-hot-toast";
 import { 
   Search, Clock, Users, Building2, User, 
-  Calendar, Filter, Globe, MapPin, CheckCircle2
+  Calendar, Filter, Globe, MapPin, CheckCircle2, Info, X
 } from "lucide-react";
 
 interface Project {
@@ -29,6 +29,7 @@ export default function ExploreProjects() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
 
   useEffect(() => {
     fetchProjects();
@@ -151,10 +152,13 @@ export default function ExploreProjects() {
               <div className="p-5 border-b border-gray-100 flex flex-col gap-4">
                 <div className="flex justify-between items-start">
                   {getStatusBadge(project.status)}
-                  <span className="text-xs text-gray-400 flex items-center font-medium">
-                    <Calendar className="w-3 h-3 mr-1" />
-                    {new Date(project.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
-                  </span>
+                  <button 
+                    onClick={() => setSelectedProject(project)}
+                    className="p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"
+                    title="View Problem Statement"
+                  >
+                    <Info className="w-5 h-5" />
+                  </button>
                 </div>
                 <h3 className="text-lg font-bold text-gray-900 line-clamp-2 leading-tight group-hover:text-emerald-600 transition-colors">
                   {project.title}
@@ -202,6 +206,91 @@ export default function ExploreProjects() {
 
             </div>
           ))}
+        </div>
+      )}
+      {/* Project Description Modal */}
+      {selectedProject && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            onClick={() => setSelectedProject(null)}
+          ></div>
+          
+          {/* Modal Container */}
+          <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl relative z-10 flex flex-col max-h-[85vh] animate-in fade-in zoom-in duration-200">
+            
+            {/* Modal Header */}
+            <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-slate-50/50">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-emerald-100 rounded-lg">
+                  <Info className="w-5 h-5 text-emerald-700" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900 leading-tight">{selectedProject.title}</h3>
+                  <p className="text-xs text-gray-500 font-medium">By Prof. {selectedProject.professor?.name?.firstname} {selectedProject.professor?.name?.lastname}</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setSelectedProject(null)}
+                className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-all"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body (Scrollable) */}
+            <div className="p-8 overflow-y-auto custom-scrollbar">
+               <div className="space-y-6">
+                 <div className="flex items-center gap-6 pb-6 border-b border-gray-50">
+                   <div className="flex flex-col">
+                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Status</span>
+                      {getStatusBadge(selectedProject.status)}
+                   </div>
+                   <div className="flex flex-col">
+                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Published</span>
+                      <span className="text-sm font-bold text-gray-700 flex items-center"><Calendar className="w-3.5 h-3.5 mr-1.5 text-gray-400" /> {new Date(selectedProject.createdAt).toLocaleDateString()}</span>
+                   </div>
+                   <div className="flex flex-col">
+                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Duration</span>
+                      <span className="text-sm font-bold text-gray-700 flex items-center"><Clock className="w-3.5 h-3.5 mr-1.5 text-gray-400" /> {selectedProject.duration}</span>
+                   </div>
+                 </div>
+
+                 <div>
+                   <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                     Detailed Problem Statement
+                   </h4>
+                   <div 
+                     className="prose prose-sm max-w-none text-gray-800 leading-relaxed"
+                     dangerouslySetInnerHTML={{ __html: selectedProject.description }}
+                   />
+                 </div>
+
+                 {selectedProject.skillsRequired?.length > 0 && (
+                    <div className="pt-6 border-t border-gray-50">
+                      <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Required Stack</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedProject.skillsRequired.map((skill, i) => (
+                          <span key={i} className="px-3 py-1.5 bg-gray-50 text-gray-700 rounded-lg text-[11px] font-bold border border-gray-100 shadow-sm uppercase">{skill}</span>
+                        ))}
+                      </div>
+                    </div>
+                 )}
+               </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-gray-100 bg-gray-50/50 flex justify-end">
+               <button 
+                 onClick={() => setSelectedProject(null)}
+                 className="px-6 py-2.5 bg-gray-900 hover:bg-black text-white font-bold rounded-xl text-sm transition-all shadow-sm"
+               >
+                 Close Detail View
+               </button>
+            </div>
+
+          </div>
         </div>
       )}
     </div>
