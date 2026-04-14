@@ -1,6 +1,6 @@
-# CollegeHub - Backend
+# campusWorks - Backend
 
-CollegeHub is a platform designed to bridge the communication and collaboration gap between college professors (who have industry-level problem statements) and students (who are interested in working on them).
+campusWorks is a platform designed to bridge the communication and collaboration gap between college professors (who have industry-level problem statements) and students (who are interested in working on them).
 
 ## Objective
 To provide a seamless workflow where professors can publish problem statements, students can apply to work on them, and both parties can collaborate through assigned tasks until the project's successful completion and certification.

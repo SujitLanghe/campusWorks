@@ -67,7 +67,7 @@ export default function StudentLogin() {
         <div className="bg-blue-600 p-8 text-center">
           <GraduationCap className="w-16 h-16 text-white mx-auto mb-4" />
           <h2 className="text-3xl font-bold text-white mb-2">Student Portal</h2>
-          <p className="text-blue-100">Welcome to CollegeHub</p>
+          <p className="text-blue-100">Welcome to campusWorks</p>
         </div>
 
         <div className="p-8">

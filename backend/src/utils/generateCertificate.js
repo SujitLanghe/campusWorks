@@ -91,7 +91,7 @@ const generateCertificate = (res, data) => {
         .font("Helvetica-Oblique")
         .fontSize(11)
         .fillColor("#666666")
-        .text("CollegeHub — Bridging Students and Professors", { align: "center" });
+        .text("campusWorks — Bridging Students and Professors", { align: "center" });
 
     doc.end();
 };

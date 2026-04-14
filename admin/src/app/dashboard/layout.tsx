@@ -72,7 +72,7 @@ export default function DashboardLayout({
               <ShieldCheck className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-extrabold text-gray-900 tracking-tight">CollegeHub</h1>
+              <h1 className="text-xl font-extrabold text-gray-900 tracking-tight">campusWorks</h1>
               <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Admin Control</p>
             </div>
           </div>
@@ -153,7 +153,7 @@ export default function DashboardLayout({
             <div className="flex items-center justify-between mb-8">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="w-6 h-6 text-emerald-600" />
-                <span className="font-extrabold text-xl">CollegeHub</span>
+                <span className="font-extrabold text-xl">campusWorks</span>
               </div>
               <button onClick={() => setIsMobileMenuOpen(false)}>
                 <X className="w-6 h-6 text-gray-400" />

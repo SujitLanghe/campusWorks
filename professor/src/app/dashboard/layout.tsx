@@ -67,7 +67,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className={`fixed inset-y-0 left-0 z-30 w-64 bg-slate-900 shadow-xl transform ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 transition-transform duration-300 ease-in-out flex flex-col`}>
         <div className="flex items-center justify-center h-20 border-b border-gray-800">
           <BookOpen className="h-8 w-8 text-emerald-500 mr-2" />
-          <h1 className="text-2xl font-bold text-white">CollegeHub</h1>
+          <h1 className="text-2xl font-bold text-white">campusWorks</h1>
         </div>
 
         <nav className="flex-1 px-4 py-6 space-y-2">

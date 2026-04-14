@@ -33,7 +33,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // 2. API Routes
 app.get("/", (req, res) => {
-    res.send("CollegeHub API Strategic Oversight: ACTIVE");
+    res.send("campusWorks API Strategic Oversight: ACTIVE");
 });
 
 app.use("/api/v1/student", studentRouter);

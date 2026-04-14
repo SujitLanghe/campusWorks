@@ -105,7 +105,7 @@ export default function AdminLogin() {
                 <input
                   type="email"
                   name="email"
-                  placeholder="admin@collegehub.edu"
+                  placeholder="admin@campusworks.edu"
                   onChange={handleChange}
                   className="w-full pl-11 pr-4 py-3 bg-gray-50 border-transparent rounded-xl focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all outline-none text-sm font-bold border"
                   required

@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 import Providers from "@/components/Providers";
 
 export const metadata: Metadata = {
-  title: "CollegeHub | Admin Portal",
+  title: "campusWorks | Admin Portal",
   description: "Senior Management & Research Oversight",
 };
 
