@@ -15,7 +15,10 @@ import {
   Menu, 
   X,
   ShieldCheck,
-  Bell
+  Bell,
+  Building2,
+  Megaphone,
+  BarChart3
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
@@ -58,6 +61,9 @@ export default function DashboardLayout({
     { name: "Professors", href: "/dashboard/professors", icon: Briefcase },
     { name: "Students", href: "/dashboard/students", icon: GraduationCap },
     { name: "All Projects", href: "/dashboard/projects", icon: Users },
+    { name: "Departments", href: "/dashboard/departments", icon: Building2 },
+    { name: "Announcements", href: "/dashboard/announcements", icon: Megaphone },
+    { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
   ];
 
   if (!mounted || !isAuthenticated) return null;

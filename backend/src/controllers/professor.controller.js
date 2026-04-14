@@ -2,6 +2,7 @@ import Professor from "../models/professor.model.js";
 import Application from "../models/application.model.js";
 import Project from "../models/project.model.js";
 import Task from "../models/task.model.js";
+import Announcement from "../models/announcement.model.js";
 
 const generateAccessAndRefreshTokens = async (professorID) => {
     try {
@@ -544,6 +545,24 @@ const deleteProject = async (req, res) => {
     }
 };
 
+const getAnnouncements = async (req, res) => {
+    try {
+        const announcements = await Announcement.find({
+            isActive: true,
+            targetAudience: { $in: ["ALL", "PROFESSOR"] }
+        })
+        .populate("createdBy", "name email")
+        .sort({ createdAt: -1 });
+
+        return res.status(200).json({
+            success: true,
+            announcements
+        });
+    } catch (error) {
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+};
+
 export {
     registerProfessor,
     loginProfessor,
@@ -559,5 +578,6 @@ export {
     reviewTaskSubmission,
     getProjectDetails,
     getAllProjects,
-    deleteProject
+    deleteProject,
+    getAnnouncements
 };

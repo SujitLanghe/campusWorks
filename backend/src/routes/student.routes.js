@@ -1,5 +1,5 @@
 import express from "express";
-import { registerStudent, loginStudent, logoutStudent, getStudentProjects, updateProfile, applyToProject, getAppliedProjects, submitTask, downloadCertificate, getStudentProfile, getAssignedTasks, getProjectDetails } from "../controllers/student.controller.js";
+import { registerStudent, loginStudent, logoutStudent, getStudentProjects, updateProfile, applyToProject, getAppliedProjects, submitTask, downloadCertificate, getStudentProfile, getAssignedTasks, getProjectDetails, getAnnouncements } from "../controllers/student.controller.js";
 import { upload } from "../middleware/multer.js";
 import { verifyStudentJWT } from "../middleware/student.auth.js";
 
@@ -32,6 +32,7 @@ studentRouter.route("/submit-task/:taskId").post(
     submitTask
 );
 studentRouter.route("/project/:projectId").get(verifyStudentJWT, getProjectDetails);
+studentRouter.route("/announcements").get(verifyStudentJWT, getAnnouncements);
 studentRouter.route("/certificate/:projectId").get(verifyStudentJWT, downloadCertificate);
 
 export default studentRouter;

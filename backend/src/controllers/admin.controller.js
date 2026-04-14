@@ -3,6 +3,19 @@ import Project from "../models/project.model.js";
 import Student from "../models/student.model.js";
 import Professor from "../models/professor.model.js";
 import Application from "../models/application.model.js";
+import Department from "../models/department.model.js";
+import Course from "../models/course.model.js";
+import Announcement from "../models/announcement.model.js";
+import ActivityLog from "../models/activityLog.model.js";
+
+// ─── Helper: Log an activity ───
+const logActivity = async (action, category, performedBy, targetEntity = "", metadata = {}) => {
+    try {
+        await ActivityLog.create({ action, category, performedBy, targetEntity, metadata });
+    } catch (err) {
+        console.error("Activity log failed:", err.message);
+    }
+};
 
 const generateAccessAndRefreshTokens = async (adminID) => {
     try {
@@ -95,6 +108,8 @@ const loginAdmin = async (req, res) => {
             path: "/",
             maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
         };
+
+        await logActivity("Admin logged in", "SYSTEM", admin._id, "Admin");
 
         return res
             .status(200)
@@ -296,7 +311,10 @@ const getAdminDashboardStats = async (req, res) => {
             totalProjects,
             activeInternships,
             completedProjects,
-            professorsInInternship
+            professorsInInternship,
+            totalDepartments,
+            totalCourses,
+            activeAnnouncements
         ] = await Promise.all([
             Student.countDocuments(),
             Professor.countDocuments(),
@@ -304,7 +322,10 @@ const getAdminDashboardStats = async (req, res) => {
             Application.countDocuments({ status: "ACCEPTED" }),
             Project.countDocuments({ status: "COMPLETED" }),
             Project.distinct("professor", { students: { $exists: true, $not: { $size: 0 } } })
-                .then(ids => ids.length)
+                .then(ids => ids.length),
+            Department.countDocuments(),
+            Course.countDocuments(),
+            Announcement.countDocuments({ isActive: true })
         ]);
 
         return res.status(200).json({
@@ -315,7 +336,10 @@ const getAdminDashboardStats = async (req, res) => {
                 totalProjects,
                 activeInternships,
                 completedProjects,
-                professorsInInternship
+                professorsInInternship,
+                totalDepartments,
+                totalCourses,
+                activeAnnouncements
             }
         });
     } catch (error) {
@@ -432,6 +456,8 @@ const createStudentByAdmin = async (req, res) => {
 
         const createdStudent = await Student.findById(student._id).select("-password -refreshToken");
 
+        await logActivity(`Created student: ${firstname} ${lastname}`, "USER", req.admin._id, "Student", { studentId: student._id });
+
         return res.status(201).json({
             success: true,
             message: "Student created successfully by Admin",
@@ -469,10 +495,326 @@ const createProfessorByAdmin = async (req, res) => {
 
         const createdProfessor = await Professor.findById(professor._id).select("-password -refreshToken");
 
+        await logActivity(`Onboarded professor: ${firstname} ${lastname}`, "USER", req.admin._id, "Professor", { professorId: professor._id });
+
         return res.status(201).json({
             success: true,
             message: "Professor created successfully by Admin",
             professor: createdProfessor
+        });
+    } catch (error) {
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+};
+
+// ─── Department CRUD ───
+
+const createDepartment = async (req, res) => {
+    try {
+        const { name, code, description, headOfDepartment } = req.body;
+
+        if (!name || !code) {
+            return res.status(400).json({ message: "Department name and code are required" });
+        }
+
+        const existing = await Department.findOne({ $or: [{ name }, { code: code.toUpperCase() }] });
+        if (existing) {
+            return res.status(400).json({ message: "Department with this name or code already exists" });
+        }
+
+        const department = await Department.create({ name, code: code.toUpperCase(), description, headOfDepartment });
+
+        await logActivity(`Created department: ${name} (${code})`, "DEPARTMENT", req.admin._id, "Department", { departmentId: department._id });
+
+        return res.status(201).json({
+            success: true,
+            message: "Department created successfully",
+            department
+        });
+    } catch (error) {
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+};
+
+const getDepartments = async (req, res) => {
+    try {
+        const departments = await Department.find().sort({ name: 1 });
+
+        // Count students and professors per department
+        const enriched = await Promise.all(departments.map(async (dept) => {
+            const studentCount = await Student.countDocuments({ department: dept.code });
+            const professorCount = await Professor.countDocuments({ department: dept.code });
+            const courseCount = await Course.countDocuments({ department: dept._id });
+            return {
+                ...dept.toObject(),
+                studentCount,
+                professorCount,
+                courseCount
+            };
+        }));
+
+        return res.status(200).json({
+            success: true,
+            departments: enriched
+        });
+    } catch (error) {
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+};
+
+const deleteDepartment = async (req, res) => {
+    try {
+        const { departmentId } = req.params;
+        const dept = await Department.findById(departmentId);
+
+        if (!dept) {
+            return res.status(404).json({ message: "Department not found" });
+        }
+
+        // Delete associated courses
+        await Course.deleteMany({ department: departmentId });
+        await Department.findByIdAndDelete(departmentId);
+
+        await logActivity(`Deleted department: ${dept.name}`, "DEPARTMENT", req.admin._id, "Department");
+
+        return res.status(200).json({
+            success: true,
+            message: "Department and associated courses deleted"
+        });
+    } catch (error) {
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+};
+
+// ─── Course CRUD ───
+
+const createCourse = async (req, res) => {
+    try {
+        const { name, code, department, semester, credits } = req.body;
+
+        if (!name || !code || !department) {
+            return res.status(400).json({ message: "Course name, code, and department are required" });
+        }
+
+        const existing = await Course.findOne({ code: code.toUpperCase() });
+        if (existing) {
+            return res.status(400).json({ message: "Course with this code already exists" });
+        }
+
+        const course = await Course.create({ name, code: code.toUpperCase(), department, semester, credits });
+
+        await logActivity(`Created course: ${name} (${code})`, "DEPARTMENT", req.admin._id, "Course", { courseId: course._id });
+
+        return res.status(201).json({
+            success: true,
+            message: "Course created successfully",
+            course
+        });
+    } catch (error) {
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+};
+
+const getCourses = async (req, res) => {
+    try {
+        const { departmentId } = req.query;
+        const filter = departmentId ? { department: departmentId } : {};
+        const courses = await Course.find(filter)
+            .populate("department", "name code")
+            .sort({ name: 1 });
+
+        return res.status(200).json({
+            success: true,
+            courses
+        });
+    } catch (error) {
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+};
+
+const deleteCourse = async (req, res) => {
+    try {
+        const { courseId } = req.params;
+        const course = await Course.findById(courseId);
+
+        if (!course) {
+            return res.status(404).json({ message: "Course not found" });
+        }
+
+        await Course.findByIdAndDelete(courseId);
+
+        await logActivity(`Deleted course: ${course.name}`, "DEPARTMENT", req.admin._id, "Course");
+
+        return res.status(200).json({
+            success: true,
+            message: "Course deleted successfully"
+        });
+    } catch (error) {
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+};
+
+// ─── Announcement CRUD ───
+
+const createAnnouncement = async (req, res) => {
+    try {
+        const { title, content, targetAudience, priority } = req.body;
+
+        if (!title || !content) {
+            return res.status(400).json({ message: "Title and content are required" });
+        }
+
+        const announcement = await Announcement.create({
+            title,
+            content,
+            targetAudience: targetAudience || "ALL",
+            priority: priority || "MEDIUM",
+            createdBy: req.admin._id
+        });
+
+        await logActivity(`Published announcement: ${title}`, "ANNOUNCEMENT", req.admin._id, "Announcement", { announcementId: announcement._id });
+
+        return res.status(201).json({
+            success: true,
+            message: "Announcement published successfully",
+            announcement
+        });
+    } catch (error) {
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+};
+
+const getAnnouncements = async (req, res) => {
+    try {
+        const announcements = await Announcement.find()
+            .populate("createdBy", "name email")
+            .sort({ createdAt: -1 });
+
+        return res.status(200).json({
+            success: true,
+            announcements
+        });
+    } catch (error) {
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+};
+
+const deleteAnnouncement = async (req, res) => {
+    try {
+        const { announcementId } = req.params;
+        const announcement = await Announcement.findById(announcementId);
+
+        if (!announcement) {
+            return res.status(404).json({ message: "Announcement not found" });
+        }
+
+        await Announcement.findByIdAndDelete(announcementId);
+
+        await logActivity(`Deleted announcement: ${announcement.title}`, "ANNOUNCEMENT", req.admin._id, "Announcement");
+
+        return res.status(200).json({
+            success: true,
+            message: "Announcement deleted successfully"
+        });
+    } catch (error) {
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+};
+
+const toggleAnnouncement = async (req, res) => {
+    try {
+        const { announcementId } = req.params;
+        const announcement = await Announcement.findById(announcementId);
+
+        if (!announcement) {
+            return res.status(404).json({ message: "Announcement not found" });
+        }
+
+        announcement.isActive = !announcement.isActive;
+        await announcement.save();
+
+        return res.status(200).json({
+            success: true,
+            message: `Announcement ${announcement.isActive ? "activated" : "deactivated"}`,
+            announcement
+        });
+    } catch (error) {
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+};
+
+// ─── Activity Logs / Analytics ───
+
+const getActivityLogs = async (req, res) => {
+    try {
+        const { page = 1, limit = 20, category } = req.query;
+        const skip = (page - 1) * limit;
+        const filter = category ? { category } : {};
+
+        const logs = await ActivityLog.find(filter)
+            .populate("performedBy", "name email")
+            .sort({ createdAt: -1 })
+            .limit(Number(limit))
+            .skip(Number(skip));
+
+        const total = await ActivityLog.countDocuments(filter);
+
+        return res.status(200).json({
+            success: true,
+            logs,
+            pagination: {
+                total,
+                currentPage: Number(page),
+                totalPages: Math.ceil(total / limit),
+                limit: Number(limit)
+            }
+        });
+    } catch (error) {
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+};
+
+const getSystemAnalytics = async (req, res) => {
+    try {
+        // Growth over time - students created per month (last 6 months)
+        const sixMonthsAgo = new Date();
+        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+        const [studentGrowth, professorGrowth, projectGrowth, departmentBreakdown, recentLogs] = await Promise.all([
+            Student.aggregate([
+                { $match: { createdAt: { $gte: sixMonthsAgo } } },
+                { $group: { _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } }, count: { $sum: 1 } } },
+                { $sort: { _id: 1 } }
+            ]),
+            Professor.aggregate([
+                { $match: { createdAt: { $gte: sixMonthsAgo } } },
+                { $group: { _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } }, count: { $sum: 1 } } },
+                { $sort: { _id: 1 } }
+            ]),
+            Project.aggregate([
+                { $match: { createdAt: { $gte: sixMonthsAgo } } },
+                { $group: { _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } }, count: { $sum: 1 } } },
+                { $sort: { _id: 1 } }
+            ]),
+            Student.aggregate([
+                { $group: { _id: "$department", count: { $sum: 1 } } },
+                { $sort: { count: -1 } }
+            ]),
+            ActivityLog.find()
+                .populate("performedBy", "name")
+                .sort({ createdAt: -1 })
+                .limit(15)
+        ]);
+
+        return res.status(200).json({
+            success: true,
+            analytics: {
+                studentGrowth,
+                professorGrowth,
+                projectGrowth,
+                departmentBreakdown,
+                recentLogs
+            }
         });
     } catch (error) {
         return res.status(500).json({ message: error.message || "Internal server error" });
@@ -493,5 +835,17 @@ export {
     getProfessorDetails,
     getStudentDetails,
     createStudentByAdmin,
-    createProfessorByAdmin
+    createProfessorByAdmin,
+    createDepartment,
+    getDepartments,
+    deleteDepartment,
+    createCourse,
+    getCourses,
+    deleteCourse,
+    createAnnouncement,
+    getAnnouncements,
+    deleteAnnouncement,
+    toggleAnnouncement,
+    getActivityLogs,
+    getSystemAnalytics
 };

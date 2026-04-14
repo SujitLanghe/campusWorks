@@ -13,7 +13,8 @@ import {
   LogOut, 
   Menu,
   X,
-  GraduationCap
+  GraduationCap,
+  Megaphone
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
@@ -47,6 +48,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const navItems = [
     { name: "Explore Projects", href: "/dashboard", icon: LayoutDashboard },
     { name: "My Applications & Tasks", href: "/dashboard/applications", icon: BookOpen },
+    { name: "Announcements", href: "/dashboard/announcements", icon: Megaphone },
     { name: "Profile", href: "/dashboard/profile", icon: UserCircle },
   ];
 

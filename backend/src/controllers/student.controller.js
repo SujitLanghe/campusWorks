@@ -4,6 +4,7 @@ import Student from "../models/student.model.js";
 import Project from "../models/project.model.js";
 import Application from "../models/application.model.js";
 import Task from "../models/task.model.js";
+import Announcement from "../models/announcement.model.js";
 import { generateCertificate } from "../utils/generateCertificate.js";
 import jwt from "jsonwebtoken";
 
@@ -434,6 +435,24 @@ export const getProjectDetails = async (req, res) => {
         return res.status(200).json({
             success: true,
             project
+        });
+    } catch (error) {
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+};
+
+export const getAnnouncements = async (req, res) => {
+    try {
+        const announcements = await Announcement.find({
+            isActive: true,
+            targetAudience: { $in: ["ALL", "STUDENT"] }
+        })
+        .populate("createdBy", "name email")
+        .sort({ createdAt: -1 });
+
+        return res.status(200).json({
+            success: true,
+            announcements
         });
     } catch (error) {
         return res.status(500).json({ message: error.message || "Internal server error" });

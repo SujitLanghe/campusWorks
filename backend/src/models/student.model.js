@@ -32,7 +32,6 @@ const studentSchema = new mongoose.Schema({
     },
     department:{
         type:String,
-        enum:dept,
         required:true
     },
     year:{

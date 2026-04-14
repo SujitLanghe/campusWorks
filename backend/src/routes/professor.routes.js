@@ -1,5 +1,5 @@
 import express from "express";
-import { registerProfessor, loginProfessor, logoutProfessor, publishProject, getApplicationsForProject, acceptApplication, rejectApplication, assignTask, markProjectComplete, getProfessorProfile, getMyProjects, reviewTaskSubmission, getProjectDetails, getAllProjects, deleteProject } from "../controllers/professor.controller.js";
+import { registerProfessor, loginProfessor, logoutProfessor, publishProject, getApplicationsForProject, acceptApplication, rejectApplication, assignTask, markProjectComplete, getProfessorProfile, getMyProjects, reviewTaskSubmission, getProjectDetails, getAllProjects, deleteProject, getAnnouncements } from "../controllers/professor.controller.js";
 import { verifyProfessorJWT } from "../middleware/professor.auth.js";
 
 const professorRouter = express.Router();
@@ -21,5 +21,6 @@ professorRouter.route("/complete-project/:projectId").patch(verifyProfessorJWT, 
 professorRouter.route("/review-task/:taskId").patch(verifyProfessorJWT, reviewTaskSubmission);
 professorRouter.route("/project/:projectId").get(verifyProfessorJWT, getProjectDetails);
 professorRouter.route("/delete-project/:projectId").delete(verifyProfessorJWT, deleteProject);
+professorRouter.route("/announcements").get(verifyProfessorJWT, getAnnouncements);
 
 export default professorRouter;

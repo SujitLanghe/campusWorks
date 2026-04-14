@@ -13,7 +13,8 @@ import {
   LogOut, 
   Menu,
   BookOpen,
-  Globe
+  Globe,
+  Megaphone
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
@@ -48,6 +49,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { name: "Explore Projects", href: "/dashboard/explore", icon: Globe },
     { name: "My Projects", href: "/dashboard/project", icon: Briefcase },
     { name: "Publish Project", href: "/dashboard/publish", icon: PlusCircle },
+    { name: "Announcements", href: "/dashboard/announcements", icon: Megaphone },
     { name: "Profile", href: "/dashboard/profile", icon: UserCircle },
   ];
 
